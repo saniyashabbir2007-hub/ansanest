@@ -28,7 +28,7 @@ function About() {
           </h1>
           <p className="mt-6 leading-relaxed text-foreground/80">
             {BUSINESS.name} was founded with a simple belief — that a piece of furniture should
-            outlive the home it was bought for. From a single workshop in old Delhi, we have
+            outlive the home it was bought for. From a single workshop in Mumbai, we have
             grown into one of India's most trusted upholstery ateliers, building sofas, sectionals
             and beds for thousands of families, designers and hospitality brands across the country.
           </p>
