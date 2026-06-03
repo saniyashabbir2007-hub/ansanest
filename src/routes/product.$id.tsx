@@ -1,13 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Star, MessageCircle, Phone, Mail, FileText, Check } from "lucide-react";
-import { getProduct, products } from "@/lib/products";
+import { getProductBySlug, listProducts } from "@/lib/products-api";
 import { BUSINESS, inr, waLink } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/product/$id")({
-  loader: ({ params }) => {
-    const p = getProduct(params.id);
+  loader: async ({ params }) => {
+    const p = await getProductBySlug(params.id);
     if (!p) throw notFound();
     return p;
   },
@@ -15,13 +16,13 @@ export const Route = createFileRoute("/product/$id")({
     meta: loaderData
       ? [
           { title: `${loaderData.name} — ${BUSINESS.name}` },
-          { name: "description", content: loaderData.short },
+          { name: "description", content: loaderData.short_description },
           { property: "og:title", content: loaderData.name },
-          { property: "og:description", content: loaderData.short },
-          { property: "og:image", content: loaderData.image },
+          { property: "og:description", content: loaderData.short_description },
+          { property: "og:image", content: loaderData.image_url },
         ]
       : [],
-    links: loaderData ? [{ rel: "canonical", href: `/product/${loaderData.id}` }] : [],
+    links: loaderData ? [{ rel: "canonical", href: `/product/${loaderData.slug}` }] : [],
   }),
   component: ProductPage,
   notFoundComponent: () => (
@@ -35,8 +36,11 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const p = Route.useLoaderData();
   const [active, setActive] = useState(0);
-  const related = products.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
-  const priceLabel = p.price === "request" ? "Price on Request" : inr(p.price);
+  const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
+  const related = allProducts.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
+
+  const gallery = p.gallery_urls.length > 0 ? p.gallery_urls : [p.image_url];
+  const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
   const waMsg = `Hello, I am interested in the ${p.name} (${priceLabel}). Please provide more details.`;
   const emailSubject = encodeURIComponent(`Inquiry: ${p.name}`);
   const emailBody = encodeURIComponent(`Hello,\n\nI am interested in the ${p.name} (${priceLabel}).\nPlease share more details.\n\nThank you.`);
@@ -54,11 +58,11 @@ function ProductPage() {
       <div className="mt-8 grid gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <div className="overflow-hidden rounded-2xl bg-muted">
-            <img src={p.gallery[active]} alt={p.name} className="aspect-[4/3] w-full object-cover" />
+            <img src={gallery[active]} alt={p.name} className="aspect-[4/3] w-full object-cover" />
           </div>
-          {p.gallery.length > 1 && (
+          {gallery.length > 1 && (
             <div className="mt-4 grid grid-cols-4 gap-3">
-              {p.gallery.map((g: string, i: number) => (
+              {gallery.map((g: string, i: number) => (
                 <button
                   key={i}
                   onClick={() => setActive(i)}
@@ -72,7 +76,7 @@ function ProductPage() {
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-[0.25em] text-emerald">{p.subType ?? p.category}</div>
+          <div className="text-xs uppercase tracking-[0.25em] text-emerald">{p.sub_type ?? p.category}</div>
           <h1 className="mt-2 font-display text-4xl text-foreground md:text-5xl">{p.name}</h1>
           <div className="mt-3 flex items-center gap-3">
             <div className="flex">
@@ -103,17 +107,19 @@ function ProductPage() {
           </div>
 
           <div className="mt-10 space-y-6">
-            <Block title="Features">
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {p.features.map((f: string) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground/80">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" /> {f}
-                  </li>
-                ))}
-              </ul>
-            </Block>
-            <Block title="Material"><p className="text-sm text-foreground/80">{p.material}</p></Block>
-            <Block title="Dimensions"><p className="text-sm text-foreground/80">{p.dimensions}</p></Block>
+            {p.features.length > 0 && (
+              <Block title="Features">
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {p.features.map((f: string) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-foreground/80">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" /> {f}
+                    </li>
+                  ))}
+                </ul>
+              </Block>
+            )}
+            {p.material && <Block title="Material"><p className="text-sm text-foreground/80">{p.material}</p></Block>}
+            {p.dimensions && <Block title="Dimensions"><p className="text-sm text-foreground/80">{p.dimensions}</p></Block>}
             <Block title="Availability">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald/10 px-3 py-1 text-sm font-medium text-emerald">
                 <span className="h-2 w-2 rounded-full bg-emerald" /> {p.availability}

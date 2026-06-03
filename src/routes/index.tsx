@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Award, Hammer, Sparkles, ShieldCheck, Heart, Smile } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import hero from "@/assets/hero-sofa.jpg";
 import sectional from "@/assets/sectional.jpg";
 import bed from "@/assets/bed.jpg";
 import custom from "@/assets/custom.jpg";
-import { products } from "@/lib/products";
+import { listProducts, type Product } from "@/lib/products-api";
 import { ProductCard } from "@/components/site/ProductCard";
 import { BUSINESS } from "@/lib/business";
 
@@ -22,6 +23,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
+
   const featured = products.filter((p) => p.featured);
   const sofas = products.filter((p) => p.category === "Sofa" || p.category === "Sectional Sofa").slice(0, 3);
   const sectionals = products.filter((p) => p.category === "Sectional Sofa").slice(0, 3);
@@ -62,11 +65,6 @@ function Index() {
           </div>
           <div className="relative">
             <img src={hero} alt="Luxury emerald velvet sectional sofa in a premium living room" width={1792} height={1152} className="aspect-[4/5] w-full rounded-2xl object-cover shadow-luxury" />
-            <div className="absolute -bottom-6 -left-6 hidden rounded-xl border border-border bg-card p-5 shadow-luxury md:block">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">Featured</div>
-              <div className="mt-1 font-display text-lg text-foreground">Emerald Heritage U-Sectional</div>
-              <div className="mt-1 text-sm text-emerald">₹2,85,000</div>
-            </div>
           </div>
         </div>
       </section>
@@ -93,27 +91,9 @@ function Index() {
         </div>
       </section>
 
-      {/* FEATURED SOFAS */}
-      <CarouselSection
-        eyebrow="Featured Sofas"
-        title="Statement seating, hand-crafted to order"
-        items={sofas}
-      />
-
-      {/* SECTIONALS */}
-      <CarouselSection
-        eyebrow="Sectional Sofa Collection"
-        title="L-shape, U-shape, curved & modular"
-        items={sectionals}
-        muted
-      />
-
-      {/* BEDS */}
-      <CarouselSection
-        eyebrow="Upholstered Beds"
-        title="Bedroom suites worthy of a slow morning"
-        items={beds}
-      />
+      <CarouselSection eyebrow="Featured Sofas" title="Statement seating, hand-crafted to order" items={sofas} />
+      <CarouselSection eyebrow="Sectional Sofa Collection" title="L-shape, U-shape, curved & modular" items={sectionals} muted />
+      <CarouselSection eyebrow="Upholstered Beds" title="Bedroom suites worthy of a slow morning" items={beds} />
 
       {/* CUSTOM */}
       <section className="container-px mx-auto max-w-7xl py-20">
@@ -158,26 +138,28 @@ function Index() {
       </section>
 
       {/* GALLERY PREVIEW */}
-      <section className="container-px mx-auto max-w-7xl py-16">
-        <div className="flex items-end justify-between gap-4">
-          <SectionHead eyebrow="Gallery" title="Glimpses from completed homes" inline />
-          <Link to="/gallery" className="hidden text-sm font-medium text-emerald underline-offset-4 hover:underline md:inline">
-            View full gallery →
-          </Link>
-        </div>
-        <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2">
-          {featured.slice(0, 6).map((p, i) => (
-            <Link
-              key={p.id}
-              to="/product/$id"
-              params={{ id: p.id }}
-              className={`relative overflow-hidden rounded-xl ${i === 0 ? "md:col-span-2 md:row-span-2" : ""}`}
-            >
-              <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+      {featured.length > 0 && (
+        <section className="container-px mx-auto max-w-7xl py-16">
+          <div className="flex items-end justify-between gap-4">
+            <SectionHead eyebrow="Gallery" title="Glimpses from completed homes" inline />
+            <Link to="/gallery" className="hidden text-sm font-medium text-emerald underline-offset-4 hover:underline md:inline">
+              View full gallery →
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2">
+            {featured.slice(0, 6).map((p, i) => (
+              <Link
+                key={p.id}
+                to="/product/$id"
+                params={{ id: p.slug }}
+                className={`relative overflow-hidden rounded-xl ${i === 0 ? "md:col-span-2 md:row-span-2" : ""}`}
+              >
+                <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* CONTACT CTA */}
       <section className="container-px mx-auto max-w-7xl py-20">
@@ -210,7 +192,8 @@ function SectionHead({ eyebrow, title, inline }: { eyebrow: string; title: strin
   );
 }
 
-function CarouselSection({ eyebrow, title, items, muted }: { eyebrow: string; title: string; items: typeof products; muted?: boolean }) {
+function CarouselSection({ eyebrow, title, items, muted }: { eyebrow: string; title: string; items: Product[]; muted?: boolean }) {
+  if (items.length === 0) return null;
   return (
     <section className={muted ? "bg-muted/40 py-16" : "py-16"}>
       <div className="container-px mx-auto max-w-7xl">

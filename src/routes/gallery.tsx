@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { products } from "@/lib/products";
+import { useQuery } from "@tanstack/react-query";
+import { listProducts } from "@/lib/products-api";
 import { BUSINESS } from "@/lib/business";
 
 export const Route = createFileRoute("/gallery")({
@@ -20,9 +21,12 @@ const TABS = ["All", "Sofas", "Sectionals", "Beds", "Custom"] as const;
 
 function Gallery() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("All");
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
   const images = products.flatMap((p) =>
-    p.gallery.map((src, i) => ({ src, name: p.name, cat: p.category, key: `${p.id}-${i}` })),
+    (p.gallery_urls.length ? p.gallery_urls : [p.image_url])
+      .filter(Boolean)
+      .map((src, i) => ({ src, name: p.name, cat: p.category, key: `${p.id}-${i}` })),
   );
   const filtered = images.filter((img) => {
     if (tab === "All") return true;
