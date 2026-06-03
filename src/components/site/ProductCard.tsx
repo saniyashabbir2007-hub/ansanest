@@ -1,0 +1,54 @@
+import { Link } from "@tanstack/react-router";
+import { Star, MessageCircle } from "lucide-react";
+import { type Product } from "@/lib/products";
+import { inr, waLink, defaultInquiry } from "@/lib/business";
+
+export function ProductCard({ p }: { p: Product }) {
+  return (
+    <article className="group overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-luxury">
+      <Link to="/product/$id" params={{ id: p.id }} className="block overflow-hidden">
+        <div className="aspect-[4/3] overflow-hidden bg-muted">
+          <img
+            src={p.image}
+            alt={p.name}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        </div>
+      </Link>
+      <div className="p-5">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{p.subType ?? p.category}</div>
+        <h3 className="mt-1 font-display text-xl text-foreground">{p.name}</h3>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex">
+            {[0, 1, 2, 3].map((i) => <Star key={i} className="h-3.5 w-3.5 fill-gold text-gold" />)}
+            <Star className="h-3.5 w-3.5 text-gold/40" />
+          </div>
+          <span className="text-xs text-muted-foreground">4.0</span>
+        </div>
+        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{p.short}</p>
+        <div className="mt-4 text-lg font-semibold text-emerald">
+          {p.price === "request" ? "Price on Request" : inr(p.price)}
+        </div>
+        <div className="mt-5 flex gap-2">
+          <Link
+            to="/product/$id"
+            params={{ id: p.id }}
+            className="flex-1 rounded-md bg-foreground px-3 py-2.5 text-center text-xs font-medium text-background transition-opacity hover:opacity-90"
+          >
+            View Details
+          </Link>
+          <a
+            href={waLink(`Hello, I am interested in the ${p.name}. ${defaultInquiry}`)}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-center justify-center gap-1.5 rounded-md bg-[#25D366] px-3 py-2.5 text-xs font-medium text-white hover:opacity-90"
+            aria-label={`WhatsApp inquiry about ${p.name}`}
+          >
+            <MessageCircle className="h-3.5 w-3.5" /> Inquire
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}
