@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { products, type Category } from "@/lib/products";
+import { useQuery } from "@tanstack/react-query";
+import { listProducts, listCategories } from "@/lib/products-api";
 import { ProductCard } from "@/components/site/ProductCard";
 import { BUSINESS } from "@/lib/business";
 
@@ -17,10 +18,12 @@ export const Route = createFileRoute("/catalog")({
   component: Catalog,
 });
 
-const FILTERS: (Category | "All")[] = ["All", "Sofa", "Sectional Sofa", "Upholstered Bed", "Custom Upholstery"];
-
 function Catalog() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [filter, setFilter] = useState<string>("All");
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
+  const { data: categories = [] } = useQuery({ queryKey: ["categories"], queryFn: listCategories });
+
+  const filters = ["All", ...categories.map((c) => c.name)];
   const visible = filter === "All" ? products : products.filter((p) => p.category === filter);
 
   return (
@@ -35,7 +38,7 @@ function Catalog() {
       </div>
 
       <div className="mt-10 flex flex-wrap justify-center gap-2">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -53,6 +56,10 @@ function Catalog() {
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((p) => <ProductCard key={p.id} p={p} />)}
       </div>
+
+      {visible.length === 0 && (
+        <p className="mt-16 text-center text-muted-foreground">No products in this category yet.</p>
+      )}
     </div>
   );
 }
