@@ -10,7 +10,7 @@ export function Footer() {
           <div className="font-display text-3xl text-gold">{BUSINESS.name}</div>
           <p className="mt-4 max-w-md text-sm text-primary-foreground/70">
             India's atelier for premium sofas, sectional sofas, upholstered beds and bespoke
-            upholstery. Hand-crafted since day one.
+            upholstery. Hand-crafted with lasting quality.
           </p>
           <div className="mt-6 flex gap-3">
             {[

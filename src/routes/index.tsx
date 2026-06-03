@@ -34,7 +34,7 @@ function Index() {
         <div className="container-px mx-auto grid max-w-7xl items-center gap-12 py-16 md:grid-cols-[1.05fr_1fr] md:py-24">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-emerald">
-              <Sparkles className="h-3 w-3" /> Crafted in India · Since 2008
+              <Sparkles className="h-3 w-3" /> Premium Upholstery · Crafted in India
             </div>
             <h1 className="mt-6 font-display text-5xl leading-[1.05] text-balance text-foreground md:text-7xl">
               The art of <em className="italic text-emerald">upholstered</em> living.
@@ -52,7 +52,7 @@ function Index() {
               </Link>
             </div>
             <div className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t border-border pt-6">
-              {[["15+", "Years"], ["2,500+", "Homes"], ["1000+", "Fabrics"]].map(([n, l]) => (
+              {[["100%", "Hand-Crafted"], ["2,500+", "Homes"], ["1000+", "Fabrics"]].map(([n, l]) => (
                 <div key={l}>
                   <div className="font-display text-3xl text-emerald">{n}</div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground">{l}</div>
@@ -140,7 +140,7 @@ function Index() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { Icon: Sparkles, t: "Premium Materials", d: "Italian velvets, full-grain leathers, kiln-dried hardwoods, CMHR foams." },
-            { Icon: Hammer, t: "Expert Craftsmanship", d: "Each piece is hand-built by master craftsmen with 20+ years of experience." },
+            { Icon: Hammer, t: "Expert Craftsmanship", d: "Each piece is hand-built by master craftsmen with an obsessive focus on precision and detail." },
             { Icon: Award, t: "Custom Designs", d: "1000+ fabrics, any silhouette, any size — built exactly to your home." },
             { Icon: ShieldCheck, t: "Quality Assurance", d: "Every frame is stress-tested and every seam double-stitched." },
             { Icon: Heart, t: "Comfort & Durability", d: "Pocket-spring seating and high-density foam that keeps its shape for years." },
