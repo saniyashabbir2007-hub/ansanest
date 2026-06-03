@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { WhatsAppFloat } from "@/components/site/WhatsAppFloat";
+import { Toaster } from "@/components/ui/sonner";
 import { BUSINESS } from "@/lib/business";
 
 function NotFoundComponent() {
@@ -102,6 +103,7 @@ function RootComponent() {
         <main className="flex-1"><Outlet /></main>
         <Footer />
         <WhatsAppFloat />
+        <Toaster />
       </div>
     </QueryClientProvider>
   );
