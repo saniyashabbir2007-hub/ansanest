@@ -29,7 +29,7 @@ function Catalog() {
         <div className="text-xs uppercase tracking-[0.25em] text-emerald">Catalog</div>
         <h1 className="mt-3 font-display text-5xl text-foreground md:text-6xl">Our Collection</h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          Every piece is hand-crafted to order in our Delhi atelier. Browse below and
+          Every piece is hand-crafted to order in our Mumbai atelier. Browse below and
           tap Inquire to chat with us on WhatsApp.
         </p>
       </div>

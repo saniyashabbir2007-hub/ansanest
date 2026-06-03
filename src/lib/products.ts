@@ -89,7 +89,7 @@ export const products: Product[] = [
     gallery: [sofa3],
     short: "Classic three-seater Chesterfield in full-grain cognac leather.",
     description:
-      "Our Cognac Heritage Chesterfield is the timeless three-seater every refined home should own. Wrapped in full-grain Italian leather that develops a richer patina with every passing year, the diamond-tufted back and scroll arms are hand-formed and hand-stitched in our Delhi workshop. Solid teak bun feet and double-row nailhead trim complete a piece that quietly tells visitors everything about your taste.",
+      "Our Cognac Heritage Chesterfield is the timeless three-seater every refined home should own. Wrapped in full-grain Italian leather that develops a richer patina with every passing year, the diamond-tufted back and scroll arms are hand-formed and hand-stitched in our Mumbai workshop. Solid teak bun feet and double-row nailhead trim complete a piece that quietly tells visitors everything about your taste.",
     features: ["Diamond Button Tufting", "Full-Grain Leather", "Scroll Arms", "Solid Teak Feet"],
     material: "Full-Grain Italian Leather · Solid Teak Frame",
     dimensions: '88"W × 38"D × 30"H',

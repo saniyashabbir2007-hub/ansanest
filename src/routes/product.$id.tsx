@@ -83,7 +83,7 @@ function ProductPage() {
           </div>
 
           <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
-          <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Delhi NCR</div>
+          <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
 
           <p className="mt-6 leading-relaxed text-foreground/80">{p.description}</p>
 
