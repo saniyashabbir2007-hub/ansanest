@@ -8,9 +8,9 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: `About Us — ${BUSINESS.name}` },
-      { name: "description", content: "Three generations of upholstery craftsmanship. Learn about our atelier, our makers, and our commitment to quality." },
+      { name: "description", content: "Premium upholstery craftsmanship. Learn about our atelier, our makers, and our commitment to quality." },
       { property: "og:title", content: `About ${BUSINESS.name}` },
-      { property: "og:description", content: "Three generations of upholstery craftsmanship in India." },
+      { property: "og:description", content: "Premium upholstery craftsmanship in India." },
     ],
     links: [{ rel: "canonical", href: "/about" }],
   }),
@@ -24,7 +24,7 @@ function About() {
         <div>
           <div className="text-xs uppercase tracking-[0.25em] text-emerald">Our Story</div>
           <h1 className="mt-3 font-display text-5xl text-balance text-foreground md:text-6xl">
-            Three generations. <em className="italic text-emerald">One craft.</em>
+            Premium Craftsmanship. <em className="italic text-emerald">One craft.</em>
           </h1>
           <p className="mt-6 leading-relaxed text-foreground/80">
             {BUSINESS.name} was founded with a simple belief — that a piece of furniture should
@@ -48,7 +48,7 @@ function About() {
           <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
               { Icon: Sparkles, t: "Premium Materials", d: "Sourced from the world's best mills and tanneries." },
-              { Icon: Hammer, t: "Quality Craftsmanship", d: "Hand-built by craftsmen with 20+ years of expertise." },
+              { Icon: Hammer, t: "Quality Craftsmanship", d: "Hand-built by craftsmen with an obsessive focus on precision and detail." },
               { Icon: Award, t: "Custom Design", d: "Bespoke silhouettes, fabrics and finishes." },
               { Icon: ShieldCheck, t: "Customer Focus", d: "Personal service from first sketch to final delivery." },
             ].map(({ Icon, t, d }) => (
