@@ -6,7 +6,7 @@ import { inr } from "@/lib/business";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/products")({
+export const Route = createFileRoute("/_authenticated/admin/products/")({
   component: ProductsList,
 });
 
