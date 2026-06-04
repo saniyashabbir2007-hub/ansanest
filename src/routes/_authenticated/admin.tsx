@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Tag, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Package, Tag, LogOut, ExternalLink, Users, Activity } from "lucide-react";
 import { BUSINESS } from "@/lib/business";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminLayout() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
   async function handleSignOut() {
@@ -25,17 +25,14 @@ function AdminLayout() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isSuperAdmin) {
     return (
       <div className="container-px mx-auto max-w-2xl py-20 text-center">
         <h1 className="font-display text-3xl text-foreground">Admin access required</h1>
         <p className="mt-4 text-muted-foreground">
-          Your account ({user?.email}) does not yet have admin permissions. An existing admin
-          must grant you the "admin" role from the database.
+          Your account ({user?.email}) does not have admin permissions, or has been disabled.
+          Contact the Super Admin to request access.
         </p>
-        <div className="mt-3 rounded-lg bg-muted p-4 text-left font-mono text-xs text-foreground">
-          Your user ID: <span className="select-all">{user?.id}</span>
-        </div>
         <button
           onClick={handleSignOut}
           className="mt-6 rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
@@ -51,13 +48,19 @@ function AdminLayout() {
       <div className="border-b border-border bg-background">
         <div className="container-px mx-auto flex max-w-7xl items-center justify-between py-4">
           <div className="flex items-center gap-6">
-            <Link to="/admin" className="font-display text-xl text-foreground">
-              {BUSINESS.name} <span className="text-sm text-muted-foreground">Admin</span>
+            <Link to="/admin" className="flex items-center gap-2 font-display text-xl text-foreground">
+              <img src="/favicon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
+              {BUSINESS.name}
+              <span className="text-sm text-muted-foreground">
+                {isSuperAdmin ? "Super Admin" : "Store Admin"}
+              </span>
             </Link>
             <nav className="hidden gap-1 md:flex">
               <AdminLink to="/admin" icon={LayoutDashboard} label="Overview" />
               <AdminLink to="/admin/products" icon={Package} label="Products" />
               <AdminLink to="/admin/categories" icon={Tag} label="Categories" />
+              {isSuperAdmin && <AdminLink to="/admin/users" icon={Users} label="Admins" />}
+              {isSuperAdmin && <AdminLink to="/admin/activity" icon={Activity} label="Activity" />}
             </nav>
           </div>
           <div className="flex items-center gap-2">
@@ -79,6 +82,8 @@ function AdminLayout() {
           <AdminLink to="/admin" icon={LayoutDashboard} label="Overview" />
           <AdminLink to="/admin/products" icon={Package} label="Products" />
           <AdminLink to="/admin/categories" icon={Tag} label="Categories" />
+          {isSuperAdmin && <AdminLink to="/admin/users" icon={Users} label="Admins" />}
+          {isSuperAdmin && <AdminLink to="/admin/activity" icon={Activity} label="Activity" />}
         </div>
       </div>
       <div className="container-px mx-auto max-w-7xl py-8">
