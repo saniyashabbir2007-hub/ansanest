@@ -72,8 +72,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Zenvia Living" },
       { name: "twitter:title", content: "Zenvia Living" },
       { name: "twitter:description", content: "Premium upholstery furniture showroom in India. Hand-crafted sofas, L-shaped & U-shaped sectional sofas, upholstered beds and bespoke custom upholstery." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/ed32fab4-ca61-4f71-83dc-b466e7acb013" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/ed32fab4-ca61-4f71-83dc-b466e7acb013" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9e83cc30-2c8e-4a62-92d6-5da8741fd640" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9e83cc30-2c8e-4a62-92d6-5da8741fd640" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
