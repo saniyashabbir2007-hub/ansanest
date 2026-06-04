@@ -18,7 +18,7 @@ async function logActivity(opts: {
   actorEmail: string | null;
   action: string;
   target?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: any;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin.from("admin_activity_logs").insert({
@@ -29,6 +29,7 @@ async function logActivity(opts: {
     metadata: opts.metadata ?? {},
   });
 }
+
 
 export type AdminAccount = {
   user_id: string;
@@ -216,9 +217,10 @@ export type ActivityLogEntry = {
   actor_email: string | null;
   action: string;
   target: string | null;
-  metadata: Record<string, unknown>;
+  metadata: any;
   created_at: string;
 };
+
 
 export const listActivity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
