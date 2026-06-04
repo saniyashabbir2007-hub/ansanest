@@ -7,11 +7,15 @@ export function Footer() {
     <footer className="mt-32 gradient-luxury text-primary-foreground">
       <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="font-display text-3xl text-gold">{BUSINESS.name}</div>
+          <div className="flex items-center gap-3">
+            <img src="/favicon.png" alt="" width={48} height={48} className="h-12 w-12 rounded-full object-contain" />
+            <div className="font-display text-3xl text-gold">{BUSINESS.name}</div>
+          </div>
           <p className="mt-4 max-w-md text-sm text-primary-foreground/70">
             India's atelier for premium sofas, sectional sofas, upholstered beds and bespoke
             upholstery. Hand-crafted with lasting quality.
           </p>
+
           <div className="mt-6 flex gap-3">
             {[
               { Icon: Instagram, href: BUSINESS.social.instagram, label: "Instagram" },
