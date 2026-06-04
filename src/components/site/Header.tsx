@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Menu, X, Phone } from "lucide-react";
 import { BUSINESS } from "@/lib/business";
+import { Logo } from "@/components/site/Logo";
+
 
 const nav = [
   { to: "/", label: "Home" },
@@ -17,9 +19,8 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
       <div className="container-px mx-auto flex h-20 max-w-7xl items-center justify-between">
         <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full gradient-luxury text-gold ring-1 ring-gold/40">
-            <span className="font-display text-xl">R</span>
-          </span>
+          <Logo />
+
           <div className="leading-tight">
             <div className="font-display text-xl text-foreground">{BUSINESS.name}</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Upholstery Atelier</div>
