@@ -49,7 +49,7 @@ function AdminLayout() {
         <div className="container-px mx-auto flex max-w-7xl items-center justify-between py-4">
           <div className="flex items-center gap-6">
             <Link to="/admin" className="flex items-center gap-2 font-display text-xl text-foreground">
-              <img src="/favicon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
+              <img src="/favicon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
               {BUSINESS.name}
               <span className="text-sm text-muted-foreground">
                 {isSuperAdmin ? "Super Admin" : "Store Admin"}
