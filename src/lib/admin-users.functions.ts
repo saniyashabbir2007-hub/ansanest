@@ -92,16 +92,44 @@ export const createStoreAdmin = createServerFn({ method: "POST" })
     await assertSuperAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    let newUserId: string;
+
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
       email_confirm: true,
     });
-    if (error) throw new Error(error.message);
-    const newUserId = created.user!.id;
 
-    // Trigger may have already granted 'admin' if this is somehow the first user.
-    // Ensure the role exists, not disabled.
+    if (error) {
+      // If the user already exists (e.g. signed up via Google or a previous
+      // attempt), find them and promote to Store Admin instead of failing.
+      const msg = error.message?.toLowerCase() ?? "";
+      const alreadyExists =
+        (error as any).code === "email_exists" ||
+        msg.includes("already been registered") ||
+        msg.includes("already registered") ||
+        msg.includes("already exists");
+      if (!alreadyExists) throw new Error(error.message);
+
+      const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+      if (listErr) throw new Error(listErr.message);
+      const existing = list.users.find(
+        (u) => u.email?.toLowerCase() === data.email.toLowerCase(),
+      );
+      if (!existing) throw new Error("User exists but could not be located");
+      newUserId = existing.id;
+
+      // Reset their password so they can sign in with the provided one.
+      const { error: pwErr } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+        password: data.password,
+        email_confirm: true,
+      });
+      if (pwErr) throw new Error(pwErr.message);
+    } else {
+      newUserId = created.user!.id;
+    }
+
+    // Ensure the admin role exists and is not disabled.
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
       .upsert(
