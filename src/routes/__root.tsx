@@ -68,6 +68,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:description", content: "Premium upholstery furniture showroom in India. Hand-crafted sofas, L-shaped & U-shaped sectional sofas, upholstered beds and bespoke custom upholstery." },
+      { title: "Ansa Nest" },
+      { property: "og:title", content: "Ansa Nest" },
+      { name: "twitter:title", content: "Ansa Nest" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/hZfevU0f72hr6bIxgLCubQotZ5Q2/social-images/social-1780651744380-ansa_nest.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/hZfevU0f72hr6bIxgLCubQotZ5Q2/social-images/social-1780651744380-ansa_nest.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
