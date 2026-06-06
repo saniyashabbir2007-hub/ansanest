@@ -135,7 +135,7 @@ function AuthPage() {
       </div>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        After creating an account, an existing admin must grant you the "admin" role from the database.
+        New here? Create an account and request admin access — a Super Admin will review and approve it.
       </p>
     </div>
   );

@@ -263,3 +263,125 @@ export const listActivity = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return (data ?? []) as ActivityLogEntry[];
   });
+
+// ============================================================
+// Access Requests
+// ============================================================
+
+export type AccessRequest = {
+  id: string;
+  user_id: string;
+  email: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  decided_at: string | null;
+};
+
+export const requestAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = (context.claims.email as string) ?? "";
+
+    const { data: existing } = await supabaseAdmin
+      .from("access_requests")
+      .select("*")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
+    if (existing) {
+      // Reopen rejected requests as pending; leave approved/pending as-is.
+      if (existing.status === "rejected") {
+        const { error: updErr } = await supabaseAdmin
+          .from("access_requests")
+          .update({ status: "pending", decided_at: null, decided_by: null, email })
+          .eq("id", existing.id);
+        if (updErr) throw new Error(updErr.message);
+        return { status: "pending" as const };
+      }
+      return { status: existing.status as "pending" | "approved" };
+    }
+
+    const { error } = await supabaseAdmin
+      .from("access_requests")
+      .insert({ user_id: context.userId, email, status: "pending" });
+    if (error) throw new Error(error.message);
+    return { status: "pending" as const };
+  });
+
+export const getMyAccessRequest = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AccessRequest | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("access_requests")
+      .select("*")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as AccessRequest) ?? null;
+  });
+
+export const listAccessRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AccessRequest[]> => {
+    await assertSuperAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("access_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as AccessRequest[];
+  });
+
+export const decideAccessRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      approve: z.boolean(),
+    }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    await assertSuperAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: req, error: reqErr } = await supabaseAdmin
+      .from("access_requests")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (reqErr) throw new Error(reqErr.message);
+    if (!req) throw new Error("Request not found");
+
+    if (data.approve) {
+      const { error: roleErr } = await supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          { user_id: req.user_id, role: "admin", disabled: false },
+          { onConflict: "user_id,role" },
+        );
+      if (roleErr) throw new Error(roleErr.message);
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("access_requests")
+      .update({
+        status: data.approve ? "approved" : "rejected",
+        decided_at: new Date().toISOString(),
+        decided_by: context.userId,
+      })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    await logActivity({
+      actorId: context.userId,
+      actorEmail: (context.claims.email as string) ?? null,
+      action: data.approve ? "approve_access_request" : "reject_access_request",
+      target: req.email,
+      metadata: { user_id: req.user_id },
+    });
+
+    return { ok: true };
+  });

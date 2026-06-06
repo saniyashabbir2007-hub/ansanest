@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Instagram } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Instagram, Facebook } from "lucide-react";
 import { z } from "zod";
 import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
 import { toast } from "sonner";
@@ -76,6 +76,20 @@ function Contact() {
             <div>
               <div className="text-xs uppercase tracking-widest text-muted-foreground">Follow on Instagram</div>
               <div className="mt-0.5 text-foreground">{BUSINESS.social.instagramHandle}</div>
+            </div>
+          </a>
+          <a
+            href={BUSINESS.social.facebook}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald/10 text-emerald">
+              <Facebook className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">Follow on Facebook</div>
+              <div className="mt-0.5 text-foreground">{BUSINESS.social.facebookHandle}</div>
             </div>
           </a>
           <a
