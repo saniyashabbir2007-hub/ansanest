@@ -29,21 +29,7 @@ function AdminLayout() {
   }
 
   if (!isAdmin && !isSuperAdmin) {
-    return (
-      <div className="container-px mx-auto max-w-2xl py-20 text-center">
-        <h1 className="font-display text-3xl text-foreground">Admin access required</h1>
-        <p className="mt-4 text-muted-foreground">
-          Your account ({user?.email}) does not have admin permissions, or has been disabled.
-          Contact the Super Admin to request access.
-        </p>
-        <button
-          onClick={handleSignOut}
-          className="mt-6 rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
-        >
-          Sign out
-        </button>
-      </div>
-    );
+    return <RequestAccessPanel email={user?.email ?? ""} onSignOut={handleSignOut} />;
   }
 
   return (
