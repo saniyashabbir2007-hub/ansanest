@@ -95,6 +95,60 @@ function AdminUsersPage() {
       <CreateForm submitting={createMut.isPending} onSubmit={(v) => createMut.mutate(v)} />
 
       <div className="rounded-xl border border-border bg-background">
+        <div className="border-b border-border px-5 py-3 font-display text-lg">Access requests</div>
+        {requests.isLoading ? (
+          <div className="p-6 text-sm text-muted-foreground">Loading…</div>
+        ) : requests.error ? (
+          <div className="p-6 text-sm text-destructive">{(requests.error as any).message}</div>
+        ) : !requests.data?.length ? (
+          <div className="p-6 text-sm text-muted-foreground">No access requests.</div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {requests.data.map((r) => (
+              <li key={r.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-foreground">{r.email}</span>
+                    {r.status === "pending" && (
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-600">Pending</span>
+                    )}
+                    {r.status === "approved" && (
+                      <span className="rounded-full bg-emerald/15 px-2 py-0.5 text-xs text-emerald">Approved</span>
+                    )}
+                    {r.status === "rejected" && (
+                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Rejected</span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Requested: {new Date(r.created_at).toLocaleString()}
+                  </div>
+                </div>
+                {r.status === "pending" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => decideMut.mutate({ id: r.id, approve: true })}
+                      disabled={decideMut.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-emerald px-3 py-1.5 text-xs text-emerald-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </button>
+                    <button
+                      onClick={() => decideMut.mutate({ id: r.id, approve: false })}
+                      disabled={decideMut.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                    >
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
+      <div className="rounded-xl border border-border bg-background">
         <div className="border-b border-border px-5 py-3 font-display text-lg">All admin accounts</div>
         {admins.isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Loading…</div>
