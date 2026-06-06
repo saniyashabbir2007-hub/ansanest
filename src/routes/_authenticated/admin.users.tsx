@@ -26,7 +26,24 @@ function AdminUsersPage() {
   const setDisabled = useServerFn(setStoreAdminDisabled);
   const remove = useServerFn(deleteStoreAdmin);
   const resetPw = useServerFn(resetStoreAdminPassword);
+  const listReqs = useServerFn(listAccessRequests);
+  const decideReq = useServerFn(decideAccessRequest);
   const qc = useQueryClient();
+
+  const requests = useQuery({
+    queryKey: ["access-requests"],
+    queryFn: () => listReqs(),
+    enabled: isSuperAdmin,
+  });
+  const decideMut = useMutation({
+    mutationFn: (vars: { id: string; approve: boolean }) => decideReq({ data: vars }),
+    onSuccess: (_, v) => {
+      toast.success(v.approve ? "Access approved" : "Request rejected");
+      qc.invalidateQueries({ queryKey: ["access-requests"] });
+      qc.invalidateQueries({ queryKey: ["admins"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Failed"),
+  });
 
   const admins = useQuery({
     queryKey: ["admins"],
