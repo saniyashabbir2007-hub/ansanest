@@ -5,7 +5,7 @@ export const BUSINESS = {
   phone: "+91 96518 86293",
   phoneRaw: "+919651886293",
   whatsapp: "919651886293", // country code + number, no +
-  email: "Ansanest2607@gmail.com",
+  email: "ansanest2607@gmail.com",
   address: "Oshiwara, Jogeshwari, Maharashtra, India 400102",
   hours: "Mon – Sat: 10:00 AM – 8:00 PM · Sunday: 11:00 AM – 6:00 PM",
   mapsEmbed:
@@ -13,7 +13,8 @@ export const BUSINESS = {
   social: {
     instagram: "https://instagram.com/ansanest2607",
     instagramHandle: "@ansanest2607",
-    facebook: "https://facebook.com/",
+    facebook: "https://facebook.com/Ansanest2607",
+    facebookHandle: "Ansanest2607",
     youtube: "https://youtube.com/",
   },
 } as const;
