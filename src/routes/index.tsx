@@ -54,7 +54,7 @@ function Index() {
                 Book a Showroom Visit
               </Link>
             </div>
-            <div className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t border-border pt-6">
+            <div className="mt-12 grid max-w-md grid-cols-2 gap-6 border-t border-border pt-6">
               {[["100%", "Hand-Crafted"], ["1000+", "Fabrics"]].map(([n, l]) => (
                 <div key={l}>
                   <div className="font-display text-3xl text-emerald">{n}</div>
