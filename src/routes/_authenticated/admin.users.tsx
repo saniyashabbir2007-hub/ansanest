@@ -9,8 +9,10 @@ import {
   setStoreAdminDisabled,
   deleteStoreAdmin,
   resetStoreAdminPassword,
+  listAccessRequests,
+  decideAccessRequest,
 } from "@/lib/admin-users.functions";
-import { Shield, UserPlus, KeyRound, Power, Trash2, Loader2 } from "lucide-react";
+import { Shield, UserPlus, KeyRound, Power, Trash2, Loader2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
