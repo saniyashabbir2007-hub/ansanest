@@ -5,7 +5,7 @@ import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
 export function Footer() {
   return (
     <footer className="mt-32 gradient-luxury text-primary-foreground">
-      <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-4">
+      <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-5">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
             <img src="/favicon.png" alt="Ansa Nest" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
