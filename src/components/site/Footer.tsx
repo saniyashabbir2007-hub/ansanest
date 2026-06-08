@@ -43,7 +43,7 @@ export function Footer() {
         <div>
           <h4 className="font-display text-lg text-gold">Explore</h4>
           <ul className="mt-4 space-y-2 text-sm text-primary-foreground/80">
-            {[["/", "Home"], ["/catalog", "Catalog"], ["/gallery", "Gallery"], ["/about", "About"], ["/contact", "Contact"]].map(([to, label]) => (
+            {[["/", "Home"], ["/catalog", "Catalog"], ["/gallery", "Gallery"], ["/about", "About"], ["/contact", "Contact"], ["/privacy-policy", "Privacy Policy"]].map(([to, label]) => (
               <li key={to}>
                 <Link to={to as string} className="hover:text-gold">{label}</Link>
               </li>
