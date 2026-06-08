@@ -5,7 +5,7 @@ import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
 export function Footer() {
   return (
     <footer className="mt-32 gradient-luxury text-primary-foreground">
-      <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-4">
+      <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-5">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
             <img src="/favicon.png" alt="Ansa Nest" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
@@ -43,7 +43,18 @@ export function Footer() {
         <div>
           <h4 className="font-display text-lg text-gold">Explore</h4>
           <ul className="mt-4 space-y-2 text-sm text-primary-foreground/80">
-            {[["/", "Home"], ["/catalog", "Catalog"], ["/gallery", "Gallery"], ["/about", "About"], ["/contact", "Contact"], ["/privacy-policy", "Privacy Policy"]].map(([to, label]) => (
+            {[["/", "Home"], ["/catalog", "Catalog"], ["/gallery", "Gallery"], ["/about", "About"], ["/contact", "Contact"]].map(([to, label]) => (
+              <li key={to}>
+                <Link to={to as string} className="hover:text-gold">{label}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-display text-lg text-gold">Policies</h4>
+          <ul className="mt-4 space-y-2 text-sm text-primary-foreground/80">
+            {[["/privacy-policy", "Privacy Policy"], ["/refund-policy", "Refund Policy"], ["/shipping-policy", "Shipping Policy"], ["/terms-of-service", "Terms of Service"]].map(([to, label]) => (
               <li key={to}>
                 <Link to={to as string} className="hover:text-gold">{label}</Link>
               </li>

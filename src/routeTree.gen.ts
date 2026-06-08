@@ -9,7 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -28,9 +31,24 @@ import { Route as AuthenticatedAdminProductsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminProductsNewRouteImport } from './routes/_authenticated/admin.products.new'
 import { Route as AuthenticatedAdminProductsIdRouteImport } from './routes/_authenticated/admin.products.$id'
 
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
+  id: '/shipping-policy',
+  path: '/shipping-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -131,7 +149,10 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -150,7 +171,10 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
@@ -170,7 +194,10 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -191,7 +218,10 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/privacy-policy'
+    | '/refund-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms-of-service'
     | '/admin'
     | '/product/$id'
     | '/admin/activity'
@@ -210,7 +240,10 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/privacy-policy'
+    | '/refund-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms-of-service'
     | '/product/$id'
     | '/admin/activity'
     | '/admin/categories'
@@ -229,7 +262,10 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/privacy-policy'
+    | '/refund-policy'
+    | '/shipping-policy'
     | '/sitemap.xml'
+    | '/terms-of-service'
     | '/_authenticated/admin'
     | '/product/$id'
     | '/_authenticated/admin/activity'
@@ -250,17 +286,41 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
+  ShippingPolicyRoute: typeof ShippingPolicyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
   ProductIdRoute: typeof ProductIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shipping-policy': {
+      id: '/shipping-policy'
+      path: '/shipping-policy'
+      fullPath: '/shipping-policy'
+      preLoaderRoute: typeof ShippingPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -428,7 +488,10 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
+  ShippingPolicyRoute: ShippingPolicyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsOfServiceRoute: TermsOfServiceRoute,
   ProductIdRoute: ProductIdRoute,
 }
 export const routeTree = rootRouteImport
