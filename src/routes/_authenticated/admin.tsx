@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Package, Tag, LogOut, ExternalLink, Users, Activity } from "lucide-react";
+import { LayoutDashboard, Package, Tag, LogOut, ExternalLink, Users, Activity, MessageSquareQuote } from "lucide-react";
 import { BUSINESS } from "@/lib/business";
 import { toast } from "sonner";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -48,6 +48,7 @@ function AdminLayout() {
               <AdminLink to="/admin" icon={LayoutDashboard} label="Overview" />
               <AdminLink to="/admin/products" icon={Package} label="Products" />
               <AdminLink to="/admin/categories" icon={Tag} label="Categories" />
+              <AdminLink to="/admin/reviews" icon={MessageSquareQuote} label="Reviews" />
               {isSuperAdmin && <AdminLink to="/admin/users" icon={Users} label="Admins" />}
               {isSuperAdmin && <AdminLink to="/admin/activity" icon={Activity} label="Activity" />}
             </nav>
@@ -71,6 +72,7 @@ function AdminLayout() {
           <AdminLink to="/admin" icon={LayoutDashboard} label="Overview" />
           <AdminLink to="/admin/products" icon={Package} label="Products" />
           <AdminLink to="/admin/categories" icon={Tag} label="Categories" />
+          <AdminLink to="/admin/reviews" icon={MessageSquareQuote} label="Reviews" />
           {isSuperAdmin && <AdminLink to="/admin/users" icon={Users} label="Admins" />}
           {isSuperAdmin && <AdminLink to="/admin/activity" icon={Activity} label="Activity" />}
         </div>
