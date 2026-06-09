@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Star, MessageCircle, Phone, Mail, FileText, Check } from "lucide-react";
+import { Star, Phone, Mail, FileText, Check } from "lucide-react";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { getProductBySlug, listProducts } from "@/lib/products-api";
-import { BUSINESS, inr, waLink } from "@/lib/business";
+import { BUSINESS, inr, waLink, productInquiry } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
 
 export const Route = createFileRoute("/product/$id")({
@@ -41,7 +42,7 @@ function ProductPage() {
 
   const gallery = p.gallery_urls.length > 0 ? p.gallery_urls : [p.image_url];
   const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
-  const waMsg = `Hello, I am interested in the ${p.name} (${priceLabel}). Please provide more details.`;
+  const waMsg = productInquiry(p.name);
   const emailSubject = encodeURIComponent(`Inquiry: ${p.name}`);
   const emailBody = encodeURIComponent(`Hello,\n\nI am interested in the ${p.name} (${priceLabel}).\nPlease share more details.\n\nThank you.`);
 
@@ -93,7 +94,7 @@ function ProductPage() {
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <a href={waLink(waMsg)} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 py-3.5 text-sm font-medium text-white hover:opacity-90">
-              <MessageCircle className="h-4 w-4" /> WhatsApp Inquiry
+              <WhatsAppIcon className="h-4 w-4" /> WhatsApp Enquiry
             </a>
             <a href={`tel:${BUSINESS.phoneRaw}`} className="flex items-center justify-center gap-2 rounded-md bg-foreground px-4 py-3.5 text-sm font-medium text-background hover:opacity-90">
               <Phone className="h-4 w-4" /> Call Now

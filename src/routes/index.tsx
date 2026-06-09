@@ -8,6 +8,7 @@ import custom from "@/assets/custom.jpg";
 import { listProducts, type Product } from "@/lib/products-api";
 import { ProductCard } from "@/components/site/ProductCard";
 import { BUSINESS } from "@/lib/business";
+import { TestimonialsSection } from "@/components/site/TestimonialsSection";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -160,6 +161,8 @@ function Index() {
           </div>
         </section>
       )}
+
+      <TestimonialsSection />
 
       {/* CONTACT CTA */}
       <section className="container-px mx-auto max-w-7xl py-20">

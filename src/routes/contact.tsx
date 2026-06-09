@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Instagram, Facebook } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Instagram, Facebook } from "lucide-react";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { z } from "zod";
-import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
+import { BUSINESS, waLink, generalInquiry } from "@/lib/business";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
@@ -93,12 +94,12 @@ function Contact() {
             </div>
           </a>
           <a
-            href={waLink(defaultInquiry)}
+            href={waLink(generalInquiry)}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-6 py-4 text-base font-medium text-white hover:opacity-90"
           >
-            <MessageCircle className="h-5 w-5" /> Chat on WhatsApp
+            <WhatsAppIcon className="h-5 w-5" /> Chat on WhatsApp
           </a>
           <div className="overflow-hidden rounded-xl border border-border">
             <iframe

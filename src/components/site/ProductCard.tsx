@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Star, MessageCircle } from "lucide-react";
+import { Star } from "lucide-react";
 import type { Product } from "@/lib/products-api";
-import { inr, waLink, defaultInquiry } from "@/lib/business";
+import { inr, waLink, productInquiry } from "@/lib/business";
+import { WhatsAppIcon } from "./WhatsAppIcon";
 
 export function ProductCard({ p }: { p: Product }) {
   const priceLabel = p.price_on_request
@@ -47,13 +48,13 @@ export function ProductCard({ p }: { p: Product }) {
             View Details
           </Link>
           <a
-            href={waLink(`Hello, I am interested in the ${p.name}. ${defaultInquiry}`)}
+            href={waLink(productInquiry(p.name))}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center justify-center gap-1.5 rounded-md bg-[#25D366] px-3 py-2.5 text-xs font-medium text-white hover:opacity-90"
-            aria-label={`WhatsApp inquiry about ${p.name}`}
+            aria-label={`WhatsApp enquiry about ${p.name}`}
           >
-            <MessageCircle className="h-3.5 w-3.5" /> Inquire
+            <WhatsAppIcon className="h-3.5 w-3.5" /> Enquire
           </a>
         </div>
       </div>
