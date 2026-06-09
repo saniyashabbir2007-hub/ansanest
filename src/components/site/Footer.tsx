@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Facebook, Youtube, MessageCircle, Mail, MapPin, Phone } from "lucide-react";
-import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
+import { Instagram, Facebook, Mail, MapPin, Phone } from "lucide-react";
+import { BUSINESS, waLink, generalInquiry } from "@/lib/business";
+import { WhatsAppIcon } from "./WhatsAppIcon";
 
 export function Footer() {
   return (
@@ -23,8 +24,7 @@ export function Footer() {
             {[
               { Icon: Instagram, href: BUSINESS.social.instagram, label: "Instagram" },
               { Icon: Facebook, href: BUSINESS.social.facebook, label: "Facebook" },
-              { Icon: Youtube, href: BUSINESS.social.youtube, label: "YouTube" },
-              { Icon: MessageCircle, href: waLink(defaultInquiry), label: "WhatsApp" },
+              { Icon: WhatsAppIcon, href: waLink(generalInquiry), label: "WhatsApp" },
             ].map(({ Icon, href, label }) => (
               <a
                 key={label}

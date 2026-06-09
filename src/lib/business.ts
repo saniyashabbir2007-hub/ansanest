@@ -13,16 +13,21 @@ export const BUSINESS = {
   social: {
     instagram: "https://instagram.com/_ansanest_",
     instagramHandle: "_ansanest_",
-    facebook: "https://facebook.com/Ansanest",
+    facebook: "https://www.facebook.com/Ansanest",
     facebookHandle: "Ansanest",
-    youtube: "https://youtube.com/",
   },
 } as const;
 
 export const waLink = (msg: string) =>
   `https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(msg)}`;
 
-export const defaultInquiry =
-  "Hello, I am interested in this product. Please provide more details.";
+export const generalInquiry =
+  `Hello ${BUSINESS.name},\n\nI would like to know more about your products and services.\n\nPlease share more information.\n\nThank you.`;
+
+export const productInquiry = (productName: string) =>
+  `Hello ${BUSINESS.name},\n\nI am interested in the product: ${productName}.\n\nI would like more information about this product.\n\nThank you.`;
+
+// Back-compat alias used in older imports — now points to the general inquiry.
+export const defaultInquiry = generalInquiry;
 
 export const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
