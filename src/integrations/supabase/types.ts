@@ -164,6 +164,57 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          created_at: string
+          customer_location: string | null
+          customer_name: string
+          customer_photo_url: string | null
+          id: string
+          is_featured: boolean
+          is_hidden: boolean
+          product_name: string | null
+          rating: number
+          review_date: string
+          review_text: string
+          source: string
+          submitted_by_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_location?: string | null
+          customer_name: string
+          customer_photo_url?: string | null
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          product_name?: string | null
+          rating: number
+          review_date?: string
+          review_text: string
+          source?: string
+          submitted_by_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_location?: string | null
+          customer_name?: string
+          customer_photo_url?: string | null
+          id?: string
+          is_featured?: boolean
+          is_hidden?: boolean
+          product_name?: string | null
+          rating?: number
+          review_date?: string
+          review_text?: string
+          source?: string
+          submitted_by_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       super_admins: {
         Row: {
           created_at: string
