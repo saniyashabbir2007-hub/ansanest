@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Instagram, Facebook } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Instagram, Facebook } from "lucide-react";
+import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { z } from "zod";
-import { BUSINESS, waLink, defaultInquiry } from "@/lib/business";
+import { BUSINESS, waLink, generalInquiry } from "@/lib/business";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
