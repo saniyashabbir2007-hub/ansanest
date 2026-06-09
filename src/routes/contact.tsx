@@ -94,12 +94,12 @@ function Contact() {
             </div>
           </a>
           <a
-            href={waLink(defaultInquiry)}
+            href={waLink(generalInquiry)}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-6 py-4 text-base font-medium text-white hover:opacity-90"
           >
-            <MessageCircle className="h-5 w-5" /> Chat on WhatsApp
+            <WhatsAppIcon className="h-5 w-5" /> Chat on WhatsApp
           </a>
           <div className="overflow-hidden rounded-xl border border-border">
             <iframe
