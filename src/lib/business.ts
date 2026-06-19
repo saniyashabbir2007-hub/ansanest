@@ -12,10 +12,7 @@ export const BUSINESS = {
     "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15087.1!2d72.84!3d19.14!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDA4JzI0LjAiTiA3MsKwNTAnMjQuMCJF!5e0!3m2!1sen!2sin!4v1700000000000",
   social: {
     instagram: "https://instagram.com/_ansanest_",
-    instagramHandle: "_ansanest_",
-    facebook: "https://www.facebook.com/Ansanest",
-    facebookHandle: "Ansanest",
-  },
+    instagramHandle: "_ansanest_",  },
 } as const;
 
 export const waLink = (msg: string) =>
