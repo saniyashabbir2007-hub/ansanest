@@ -53,7 +53,7 @@ function AuthPage() {
 
   async function handleGoogle() {
   setLoading(true);
-
+console.log("Google login clicked");
   try {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
