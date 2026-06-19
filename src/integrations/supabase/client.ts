@@ -17,6 +17,8 @@ function createSupabaseClient() {
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }
+console.log("SUPABASE URL:", SUPABASE_URL);
+console.log("SUPABASE KEY START:", SUPABASE_PUBLISHABLE_KEY?.slice(0,20));
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
