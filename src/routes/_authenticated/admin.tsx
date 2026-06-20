@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyAccessRequest, requestAccess } from "@/lib/admin-users.functions";
+import { Logo } from "@/components/site/Logo";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
@@ -38,12 +39,12 @@ function AdminLayout() {
         <div className="container-px mx-auto flex max-w-7xl items-center justify-between py-4">
           <div className="flex items-center gap-6">
             <Link to="/admin" className="flex items-center gap-2 font-display text-xl text-foreground">
-              <img src="/favicon.jpeg" alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
-              {BUSINESS.name}
-              <span className="text-sm text-muted-foreground">
-                {isSuperAdmin ? "Super Admin" : "Store Admin"}
-              </span>
-            </Link>
+  <Logo className="h-8 w-8" />
+  {BUSINESS.name}
+  <span className="text-sm text-muted-foreground">
+    {isSuperAdmin ? "Super Admin" : "Store Admin"}
+  </span>
+</Link>
             <nav className="hidden gap-1 md:flex">
               <AdminLink to="/admin" icon={LayoutDashboard} label="Overview" />
               <AdminLink to="/admin/products" icon={Package} label="Products" />
