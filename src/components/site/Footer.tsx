@@ -9,7 +9,7 @@ export function Footer() {
       <div className="container-px mx-auto grid max-w-7xl gap-12 py-20 md:grid-cols-5">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
-            <img src="/favicon.png" alt="Ansa Nest" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+            <img src="/favicon.jpeg" alt="Ansa Nest" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
             <div>
               <div className="font-display text-3xl text-gold">{BUSINESS.name}</div>
               <div className="text-xs uppercase tracking-[0.25em] text-primary-foreground/60">{BUSINESS.tagline}</div>

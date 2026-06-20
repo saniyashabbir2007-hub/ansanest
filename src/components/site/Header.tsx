@@ -23,7 +23,7 @@ export function Header() {
 
           <div className="leading-tight">
             <div className="font-display text-xl text-foreground">{BUSINESS.name}</div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Upholstery Atelier</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Crafted for comfort</div>
           </div>
         </Link>
 
