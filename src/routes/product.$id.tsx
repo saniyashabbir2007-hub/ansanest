@@ -119,6 +119,20 @@ function ProductPage() {
                 </ul>
               </Block>
             )}
+            {p.colors && p.colors.length > 0 && (
+  <Block title="Available Colors">
+    <div className="flex flex-wrap gap-2">
+      {p.colors.map((color: string) => (
+        <span
+          key={color}
+          className="rounded-full border px-3 py-1 text-sm"
+        >
+          {color}
+        </span>
+      ))}
+    </div>
+  </Block>
+)}
             {p.material && <Block title="Material"><p className="text-sm text-foreground/80">{p.material}</p></Block>}
             {p.dimensions && <Block title="Dimensions"><p className="text-sm text-foreground/80">{p.dimensions}</p></Block>}
             <Block title="Customization">
