@@ -16,6 +16,7 @@ async function assertSuperAdmin(userId: string) {
   console.log("SUPER ADMIN RECORD:", data);
 
   if (error) throw new Error(error.message);
+  console.log("SUPER ADMIN CHECK", userId, data);
   if (!data) throw new Error("Forbidden: Super admin only");
 }
 
