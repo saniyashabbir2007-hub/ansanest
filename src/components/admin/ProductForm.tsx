@@ -75,7 +75,8 @@ export function ProductForm({
   const [colorsText, setColorsText] = useState(
   (initial?.colors ?? []).join("\n"),
 );
-
+console.log("INITIAL COLORS:", initial?.colors);
+console.log("COLORS TEXT:", colorsText);
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
