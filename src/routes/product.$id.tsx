@@ -36,6 +36,7 @@ export const Route = createFileRoute("/product/$id")({
 
 function ProductPage() {
   const p = Route.useLoaderData();
+  console.log("PRODUCT COLORS:", p.colors);
   console.log("PRODUCT DATA:", p);
   const [active, setActive] = useState(0);
   const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
