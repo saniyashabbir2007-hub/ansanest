@@ -231,7 +231,10 @@ const slug = v.slug || slugify(v.name);
               placeholder={"Hand-tufted\nSolid wood frame\nStain-resistant fabric"}
               className={inputCls}
             />
-          </Field>
+          </Field> 
+          <div className="bg-red-500 text-white p-2">
+  COLORS FIELD TEST
+</div>
           <Field label="Available Colors (one per line)">
   <textarea
     rows={5}
