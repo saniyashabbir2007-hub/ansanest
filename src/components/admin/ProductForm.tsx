@@ -232,9 +232,7 @@ const slug = v.slug || slugify(v.name);
               className={inputCls}
             />
           </Field> 
-          <div className="bg-red-500 text-white p-2">
-  COLORS FIELD TEST
-</div>
+          
           <Field label="Available Colors (one per line)">
   <textarea
     rows={5}
