@@ -7,28 +7,21 @@ async function assertSuperAdmin(userId: string) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const result = await supabaseAdmin
+    .from("super_admins")
+    .select("*");
+
+  console.log("ALL SUPER ADMINS", result.data);
+
   const { data, error } = await supabaseAdmin
     .from("super_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  console.log("SUPER ADMIN RECORD:", data);
+  console.log("SUPER ADMIN CHECK", userId, data, error);
 
   if (error) throw new Error(error.message);
-const result = await supabaseAdmin
-  .from("super_admins")
-  .select("*");
-
-console.log("ALL SUPER ADMINS", result.data);
-
-const { data, error } = await supabaseAdmin
-  .from("super_admins")
-  .select("user_id")
-  .eq("user_id", userId)
-  .maybeSingle();
-
-console.log("SUPER ADMIN CHECK", userId, data, error);
   if (!data) throw new Error("Forbidden: Super admin only");
 }
 
