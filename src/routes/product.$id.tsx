@@ -36,6 +36,7 @@ export const Route = createFileRoute("/product/$id")({
 
 function ProductPage() {
   const p = Route.useLoaderData();
+  console.log("PRODUCT DATA:", p);
   const [active, setActive] = useState(0);
   const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
   const related = allProducts.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
@@ -79,6 +80,7 @@ function ProductPage() {
         <div>
           <div className="text-xs uppercase tracking-[0.25em] text-emerald">{p.sub_type ?? p.category}</div>
           <h1 className="mt-2 font-display text-4xl text-foreground md:text-5xl">{p.name}</h1>
+          
           <div className="mt-3 flex items-center gap-3">
             <div className="flex">
               {[0, 1, 2, 3].map((i) => <Star key={i} className="h-4 w-4 fill-gold text-gold" />)}
@@ -119,14 +121,14 @@ function ProductPage() {
                 </ul>
               </Block>
             )}
+            console.log("COLORS CHECK:", p.colors);
             {p.colors && p.colors.length > 0 && (
   <Block title="Available Colors">
     <div className="flex flex-wrap gap-2">
       {p.colors.map((color: string) => (
         <span
           key={color}
-          className="rounded-full border px-3 py-1 text-sm"
-        >
+className="rounded-full bg-emerald/10 text-emerald px-4 py-1.5 text-sm font-medium"        >
           {color}
         </span>
       ))}
