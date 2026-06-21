@@ -13,6 +13,7 @@ export type Product = {
   short_description: string;
   description: string;
   features: string[];
+  colors: string[];
   material: string;
   dimensions: string;
   availability: string;

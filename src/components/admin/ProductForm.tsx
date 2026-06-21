@@ -24,6 +24,7 @@ const empty: ProductFormValues = {
   short_description: "",
   description: "",
   features: [],
+  colors: [],
   material: "",
   dimensions: "",
   availability: "Made to Order",
@@ -57,6 +58,7 @@ export function ProductForm({
           short_description: initial.short_description,
           description: initial.description,
           features: initial.features ?? [],
+          colors: initial.colors ?? [],
           material: initial.material,
           dimensions: initial.dimensions,
           availability: initial.availability,
@@ -70,6 +72,10 @@ export function ProductForm({
   const [featuresText, setFeaturesText] = useState(
     (initial?.features ?? []).join("\n"),
   );
+  const [colorsText, setColorsText] = useState(
+  (initial?.colors ?? []).join("\n"),
+);
+
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
@@ -108,14 +114,20 @@ export function ProductForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const features = featuresText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const slug = v.slug || slugify(v.name);
+  .split("\n")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const colors = colorsText
+  .split("\n")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const slug = v.slug || slugify(v.name);
     if (!v.name.trim()) return toast.error("Name is required");
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
-    onSubmit({ ...v, slug, features });
+    onSubmit({ ...v, slug, features, colors});
   }
 
   return (
@@ -219,6 +231,15 @@ export function ProductForm({
               className={inputCls}
             />
           </Field>
+          <Field label="Available Colors (one per line)">
+  <textarea
+    rows={5}
+    value={colorsText}
+    onChange={(e) => setColorsText(e.target.value)}
+    placeholder={"Ivory White\nBeige\nTaupe\nCharcoal Grey\nEmerald Green"}
+    className={inputCls}
+  />
+</Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <input
