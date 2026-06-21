@@ -121,7 +121,6 @@ function ProductPage() {
                 </ul>
               </Block>
             )}
-            console.log("COLORS CHECK:", p.colors);
             {p.colors && p.colors.length > 0 && (
   <Block title="Available Colors">
     <div className="flex flex-wrap gap-2">
