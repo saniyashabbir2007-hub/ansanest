@@ -121,6 +121,14 @@ function ProductPage() {
             )}
             {p.material && <Block title="Material"><p className="text-sm text-foreground/80">{p.material}</p></Block>}
             {p.dimensions && <Block title="Dimensions"><p className="text-sm text-foreground/80">{p.dimensions}</p></Block>}
+            <Block title="Customization">
+  <ul className="space-y-2 text-sm text-foreground/80">
+    <li>✓ Custom Dimensions Available</li>
+    <li>✓ Custom Upholstery Available</li>
+    <li>✓ Fabric & Color Selection Available</li>
+    <li>✓ Made to Order</li>
+  </ul>
+</Block>
             <Block title="Availability">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald/10 px-3 py-1 text-sm font-medium text-emerald">
                 <span className="h-2 w-2 rounded-full bg-emerald" /> {p.availability}
