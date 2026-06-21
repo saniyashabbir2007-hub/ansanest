@@ -16,7 +16,19 @@ async function assertSuperAdmin(userId: string) {
   console.log("SUPER ADMIN RECORD:", data);
 
   if (error) throw new Error(error.message);
-  console.log("SUPER ADMIN CHECK", userId, data);
+const result = await supabaseAdmin
+  .from("super_admins")
+  .select("*");
+
+console.log("ALL SUPER ADMINS", result.data);
+
+const { data, error } = await supabaseAdmin
+  .from("super_admins")
+  .select("user_id")
+  .eq("user_id", userId)
+  .maybeSingle();
+
+console.log("SUPER ADMIN CHECK", userId, data, error);
   if (!data) throw new Error("Forbidden: Super admin only");
 }
 
