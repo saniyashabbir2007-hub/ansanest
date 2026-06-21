@@ -38,6 +38,11 @@ export function ProductCard({ p }: { p: Product }) {
           <span className="text-xs text-muted-foreground">4.0</span>
         </div>
         <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{p.short_description}</p>
+        {p.dimensions && (
+  <div className="mt-2 text-xs text-muted-foreground">
+    Size: {p.dimensions}
+  </div>
+)}
         <div className="mt-4 text-lg font-semibold text-emerald">{priceLabel}</div>
         <div className="mt-5 flex gap-2">
           <Link
