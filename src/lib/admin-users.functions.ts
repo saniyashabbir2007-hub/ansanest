@@ -3,12 +3,18 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertSuperAdmin(userId: string) {
+  console.log("SUPER ADMIN CHECK USER ID:", userId);
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
   const { data, error } = await supabaseAdmin
     .from("super_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
+
+  console.log("SUPER ADMIN RECORD:", data);
+
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: Super admin only");
 }
