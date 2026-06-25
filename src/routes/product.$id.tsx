@@ -38,12 +38,18 @@ function ProductPage() {
   const p = Route.useLoaderData();
   console.log("PRODUCT COLORS:", p.colors);
   console.log("PRODUCT DATA:", p);
-  const [active, setActive] = useState(0);
-  const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
+const [active, setActive] = useState(0);
+const [selectedColor, setSelectedColor] = useState(0);  const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
   const related = allProducts.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
 
-  const gallery = p.gallery_urls.length > 0 ? p.gallery_urls : [p.image_url];
-  const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
+const variants = (p as any).color_variants ?? [];
+
+const gallery =
+  variants.length > 0
+    ? variants[selectedColor]?.images ?? [p.image_url]
+    : p.gallery_urls.length > 0
+    ? p.gallery_urls
+    : [p.image_url];  const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
   const waMsg = productInquiry(p.name);
   const emailSubject = encodeURIComponent(`Inquiry: ${p.name}`);
   const emailBody = encodeURIComponent(`Hello,\n\nI am interested in the ${p.name} (${priceLabel}).\nPlease share more details.\n\nThank you.`);
@@ -94,6 +100,34 @@ function ProductPage() {
           <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
 
           <p className="mt-6 leading-relaxed text-foreground/80">{p.description}</p>
+
+          {variants.length > 0 && (
+  <div className="mt-6">
+    <h3 className="mb-3 text-sm font-semibold">
+      Select Color
+    </h3>
+
+    <div className="flex flex-wrap gap-3">
+      {variants.map((variant: any, index: number) => (
+        <button
+          key={index}
+          type="button"
+          onClick={() => {
+            setSelectedColor(index);
+            setActive(0);
+          }}
+          className={`rounded-full border px-4 py-2 transition ${
+            selectedColor === index
+              ? "bg-emerald text-white border-emerald"
+              : "border-gray-300"
+          }`}
+        >
+          {variant.name}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <a href={waLink(waMsg)} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 py-3.5 text-sm font-medium text-white hover:opacity-90">

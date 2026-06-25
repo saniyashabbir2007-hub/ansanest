@@ -25,6 +25,7 @@ const empty: ProductFormValues = {
   description: "",
   features: [],
   colors: [],
+  color_variants: [],
   material: "",
   dimensions: "",
   availability: "Made to Order",
@@ -59,6 +60,7 @@ export function ProductForm({
           description: initial.description,
           features: initial.features ?? [],
           colors: initial.colors ?? [],
+          color_variants: (initial as any).color_variants ?? [],
           material: initial.material,
           dimensions: initial.dimensions,
           availability: initial.availability,
@@ -128,8 +130,13 @@ const slug = v.slug || slugify(v.name);
     if (!v.name.trim()) return toast.error("Name is required");
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
-    onSubmit({ ...v, slug, features, colors});
-  }
+onSubmit({
+  ...v,
+  slug,
+  features,
+  colors,
+  color_variants: v.color_variants,
+});  }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -242,6 +249,104 @@ const slug = v.slug || slugify(v.name);
     className={inputCls}
   />
 </Field>
+<Card title="Color Variants">
+  <div className="space-y-4">
+    {(v.color_variants || []).map((variant: any, index: number) => (
+      <div
+        key={index}
+        className="rounded-lg border p-4 space-y-3"
+      >
+        <input
+          placeholder="Color Name"
+          value={variant.name || ""}
+          onChange={(e) => {
+            const variants = [...(v.color_variants || [])];
+            variants[index].name = e.target.value;
+            set("color_variants", variants);
+          }}
+          className={inputCls}
+        />
+
+        <div className="space-y-3">
+  <UploadBox
+    uploading={false}
+    multiple
+    label="Upload Variant Images"
+    onFiles={async (files) => {
+      const uploaded: string[] = [];
+
+      for (const file of Array.from(files)) {
+        uploaded.push(await uploadProductImage(file));
+      }
+
+      const variants = [...(v.color_variants || [])];
+
+      variants[index].images = [
+        ...(variants[index].images || []),
+        ...uploaded,
+      ];
+
+      set("color_variants", variants);
+    }}
+  />
+
+  <div className="grid grid-cols-3 gap-3">
+    {(variant.images || []).map((img: string, imgIndex: number) => (
+      <div key={imgIndex} className="relative">
+        <img
+          src={img}
+          className="aspect-square rounded-md object-cover"
+        />
+
+        <button
+          type="button"
+          className="absolute right-1 top-1 rounded-full bg-white p-1"
+          onClick={() => {
+            const variants = [...(v.color_variants || [])];
+
+            variants[index].images.splice(imgIndex, 1);
+
+            set("color_variants", variants);
+          }}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const variants = [...(v.color_variants || [])];
+            variants.splice(index, 1);
+            set("color_variants", variants);
+          }}
+          className="rounded border px-3 py-2"
+        >
+          Remove Color
+        </button>
+      </div>
+    ))}
+
+    <button
+      type="button"
+      onClick={() =>
+        set("color_variants", [
+          ...(v.color_variants || []),
+          {
+            name: "",
+            images: [],
+          },
+        ])
+      }
+      className="rounded border px-4 py-2"
+    >
+      Add Color Variant
+    </button>
+  </div>
+</Card>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <input
