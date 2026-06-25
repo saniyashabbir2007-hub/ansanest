@@ -30,6 +30,10 @@ export function useAuth() {
           .eq("user_id", u.id)
           .maybeSingle(),
       ]);
+      console.log("Current User:", u?.id);
+console.log("Admin Result:", adminRes.data);
+console.log("Super Admin Result:", superRes.data);
+
       setIsAdmin(!!adminRes.data);
       setIsSuperAdmin(!!superRes.data);
     }
