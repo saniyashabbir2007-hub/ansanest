@@ -129,3 +129,47 @@ export function slugify(s: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
 }
+
+export type ProductReview = {
+  id: string;
+  product_id: string;
+  name: string;
+  rating: number;
+  review: string;
+  approved: boolean;
+  created_at: string;
+};
+
+export async function listProductReviews(
+  productId: string
+): Promise<ProductReview[]> {
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .select("*")
+    .eq("product_id", productId)
+    .eq("approved", true)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []) as ProductReview[];
+}
+export async function createProductReview(input: {
+  product_id: string;
+  name: string;
+  rating: number;
+  review: string;
+}) {
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .insert({
+      ...input,
+      approved: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}

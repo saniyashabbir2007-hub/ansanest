@@ -1,9 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star, Phone, Mail, FileText, Check } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
-import { getProductBySlug, listProducts } from "@/lib/products-api";
+import {
+  getProductBySlug,
+  listProducts,
+  listProductReviews,
+  createProductReview,
+} from "@/lib/products-api";
 import { BUSINESS, inr, waLink, productInquiry } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
 
@@ -39,8 +44,35 @@ function ProductPage() {
   console.log("PRODUCT COLORS:", p.colors);
   console.log("PRODUCT DATA:", p);
 const [active, setActive] = useState(0);
-const [selectedColor, setSelectedColor] = useState(0);  const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
+const [selectedColor, setSelectedColor] = useState(0);  
+const [reviewName, setReviewName] = useState("");
+const [reviewText, setReviewText] = useState("");
+const [rating, setRating] = useState(5);
+
+const qc = useQueryClient();
+const { data: allProducts = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
   const related = allProducts.filter((x) => x.id !== p.id && x.category === p.category).slice(0, 3);
+
+  const { data: reviews = [] } = useQuery({
+  queryKey: ["reviews", p.id],
+  queryFn: () => listProductReviews(p.id),
+});
+
+const reviewMutation = useMutation({
+  mutationFn: createProductReview,
+  onSuccess: () => {
+    setReviewName("");
+    setReviewText("");
+    setRating(5);
+    qc.invalidateQueries({
+      queryKey: ["reviews", p.id],
+    });
+
+    alert(
+      "Thank you! Your review has been submitted and will appear after approval."
+    );
+  },
+});
 
 const variants = (p as any).color_variants ?? [];
 
@@ -126,7 +158,6 @@ const gallery =
   </div>
 )}
 
-          <p className="mt-4 leading-relaxed text-foreground/80">{p.description}</p>
 
          
 
@@ -144,6 +175,7 @@ const gallery =
               <FileText className="h-4 w-4" /> Request a Quote
             </Link>
           </div>
+          <p className="mt-4 leading-relaxed text-foreground/80">{p.description}</p>
 
           <div className="mt-10 space-y-6">
             {p.features.length > 0 && (
@@ -188,6 +220,91 @@ className="rounded-full bg-emerald/10 text-emerald px-4 py-1.5 text-sm font-medi
           </div>
         </div>
       </div>
+
+      <section className="mt-20">
+  <h2 className="font-display text-3xl text-foreground">
+    Customer Reviews
+  </h2>
+
+  <div className="mt-8 space-y-6">
+    {reviews.map((r: any) => (
+      <div
+        key={r.id}
+        className="rounded-xl border border-border p-5"
+      >
+        <div className="flex items-center gap-2">
+          {[...Array(r.rating)].map((_, i) => (
+            <Star
+              key={i}
+              className="h-4 w-4 fill-gold text-gold"
+            />
+          ))}
+        </div>
+
+        <div className="mt-2 font-semibold">
+          {r.name}
+        </div>
+
+        <p className="mt-2 text-muted-foreground">
+          {r.review}
+        </p>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-12 rounded-xl border border-border p-6">
+    <h3 className="text-xl font-semibold">
+      Write a Review
+    </h3>
+
+    <input
+      value={reviewName}
+      onChange={(e) =>
+        setReviewName(e.target.value)
+      }
+      placeholder="Your Name"
+      className="mt-4 w-full rounded-md border border-border p-3"
+    />
+
+    <select
+      value={rating}
+      onChange={(e) =>
+        setRating(Number(e.target.value))
+      }
+      className="mt-4 w-full rounded-md border border-border p-3"
+    >
+      <option value={5}>⭐⭐⭐⭐⭐</option>
+      <option value={4}>⭐⭐⭐⭐</option>
+      <option value={3}>⭐⭐⭐</option>
+      <option value={2}>⭐⭐</option>
+      <option value={1}>⭐</option>
+    </select>
+
+    <textarea
+      value={reviewText}
+      onChange={(e) =>
+        setReviewText(e.target.value)
+      }
+      placeholder="Tell us about this product..."
+      rows={5}
+      className="mt-4 w-full rounded-md border border-border p-3"
+    />
+
+    <button
+      onClick={() =>
+        reviewMutation.mutate({
+          product_id: p.id,
+          name: reviewName,
+          rating,
+          review: reviewText,
+        })
+      }
+      className="mt-4 rounded-md bg-emerald px-6 py-3 text-white"
+    >
+      Submit Review
+    </button>
+  </div>
+</section>
 
       {related.length > 0 && (
         <section className="mt-24">
