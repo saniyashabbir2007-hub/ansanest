@@ -11,7 +11,8 @@ async function assertSuperAdmin(userId: string) {
     .from("super_admins")
     .select("*");
 
-  console.log("ALL SUPER ADMINS", result.data);
+console.log("ALL SUPER ADMINS:", result.data);
+console.log("CHECKING USER:", userId);
 
   const { data, error } = await supabaseAdmin
     .from("super_admins")
@@ -19,7 +20,9 @@ async function assertSuperAdmin(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  console.log("SUPER ADMIN CHECK", userId, data, error);
+console.log("Server User ID:", userId);
+console.log("Super Admin Data:", data);
+console.log("LOOKUP RESULT:", data);
 
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: Super admin only");

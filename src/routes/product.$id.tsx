@@ -98,11 +98,8 @@ const gallery =
 
           <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
           <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
-
-          <p className="mt-6 leading-relaxed text-foreground/80">{p.description}</p>
-
-          {variants.length > 0 && (
-  <div className="mt-6">
+           {variants.length > 0 && (
+  <div className="mt-4">
     <h3 className="mb-3 text-sm font-semibold">
       Select Color
     </h3>
@@ -128,6 +125,10 @@ const gallery =
     </div>
   </div>
 )}
+
+          <p className="mt-4 leading-relaxed text-foreground/80">{p.description}</p>
+
+         
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <a href={waLink(waMsg)} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 py-3.5 text-sm font-medium text-white hover:opacity-90">
