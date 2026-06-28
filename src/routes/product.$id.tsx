@@ -41,6 +41,8 @@ export const Route = createFileRoute("/product/$id")({
 
 function ProductPage() {
   const p = Route.useLoaderData();
+  console.log("VIDEO URLS:", p.video_urls);
+console.log("FULL PRODUCT:", p);
   console.log("PRODUCT COLORS:", p.colors);
   console.log("PRODUCT DATA:", p);
 const [active, setActive] = useState(0);
