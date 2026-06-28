@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   listCategories,
   uploadProductImage,
+  uploadProductVideo,
   slugify,
   type Product,
   type ProductInput,
@@ -21,11 +22,11 @@ const empty: ProductFormValues = {
   price_on_request: false,
   image_url: "",
   gallery_urls: [],
+  video_urls: [],
   short_description: "",
   description: "",
   features: [],
   colors: [],
-  color_variants: [],
   material: "",
   dimensions: "",
   availability: "Made to Order",
@@ -56,11 +57,11 @@ export function ProductForm({
           price_on_request: initial.price_on_request,
           image_url: initial.image_url,
           gallery_urls: initial.gallery_urls ?? [],
+          video_urls: (initial as any).video_urls ?? [],
           short_description: initial.short_description,
           description: initial.description,
           features: initial.features ?? [],
           colors: initial.colors ?? [],
-          color_variants: (initial as any).color_variants ?? [],
           material: initial.material,
           dimensions: initial.dimensions,
           availability: initial.availability,
@@ -71,6 +72,7 @@ export function ProductForm({
   );
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingVideos, setUploadingVideos] = useState(false);
   const [featuresText, setFeaturesText] = useState(
     (initial?.features ?? []).join("\n"),
   );
@@ -114,6 +116,31 @@ console.log("COLORS TEXT:", colorsText);
     }
   }
 
+  async function handleVideoUpload(files: FileList) {
+  setUploadingVideos(true);
+
+  try {
+    const urls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      urls.push(await uploadProductVideo(file));
+    }
+
+    set("video_urls", [
+      ...(v.video_urls ?? []),
+      ...urls,
+    ]);
+
+    toast.success(
+      `${urls.length} video${urls.length === 1 ? "" : "s"} uploaded`
+    );
+  } catch (e: any) {
+    toast.error(e.message || "Upload failed");
+  } finally {
+    setUploadingVideos(false);
+  }
+}
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const features = featuresText
@@ -135,7 +162,6 @@ onSubmit({
   slug,
   features,
   colors,
-  color_variants: v.color_variants,
 });  }
 
   return (
@@ -249,104 +275,6 @@ onSubmit({
     className={inputCls}
   />
 </Field>
-<Card title="Color Variants">
-  <div className="space-y-4">
-    {(v.color_variants || []).map((variant: any, index: number) => (
-      <div
-        key={index}
-        className="rounded-lg border p-4 space-y-3"
-      >
-        <input
-          placeholder="Color Name"
-          value={variant.name || ""}
-          onChange={(e) => {
-            const variants = [...(v.color_variants || [])];
-            variants[index].name = e.target.value;
-            set("color_variants", variants);
-          }}
-          className={inputCls}
-        />
-
-        <div className="space-y-3">
-  <UploadBox
-    uploading={false}
-    multiple
-    label="Upload Variant Images"
-    onFiles={async (files) => {
-      const uploaded: string[] = [];
-
-      for (const file of Array.from(files)) {
-        uploaded.push(await uploadProductImage(file));
-      }
-
-      const variants = [...(v.color_variants || [])];
-
-      variants[index].images = [
-        ...(variants[index].images || []),
-        ...uploaded,
-      ];
-
-      set("color_variants", variants);
-    }}
-  />
-
-  <div className="grid grid-cols-3 gap-3">
-    {(variant.images || []).map((img: string, imgIndex: number) => (
-      <div key={imgIndex} className="relative">
-        <img
-          src={img}
-          className="aspect-square rounded-md object-cover"
-        />
-
-        <button
-          type="button"
-          className="absolute right-1 top-1 rounded-full bg-white p-1"
-          onClick={() => {
-            const variants = [...(v.color_variants || [])];
-
-            variants[index].images.splice(imgIndex, 1);
-
-            set("color_variants", variants);
-          }}
-        >
-          <X className="h-3 w-3" />
-        </button>
-      </div>
-    ))}
-  </div>
-</div>
-
-        <button
-          type="button"
-          onClick={() => {
-            const variants = [...(v.color_variants || [])];
-            variants.splice(index, 1);
-            set("color_variants", variants);
-          }}
-          className="rounded border px-3 py-2"
-        >
-          Remove Color
-        </button>
-      </div>
-    ))}
-
-    <button
-      type="button"
-      onClick={() =>
-        set("color_variants", [
-          ...(v.color_variants || []),
-          {
-            name: "",
-            images: [],
-          },
-        ])
-      }
-      className="rounded border px-4 py-2"
-    >
-      Add Color Variant
-    </button>
-  </div>
-</Card>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <input
@@ -427,6 +355,45 @@ onSubmit({
           </div>
         </Card>
 
+        <Card title="Videos">
+  <div className="grid gap-3">
+    {(v.video_urls ?? []).map((url, i) => (
+      <div key={i} className="relative">
+        <video
+          src={url}
+          controls
+          className="w-full rounded-md"
+        />
+
+        <button
+          type="button"
+          onClick={() =>
+            set(
+              "video_urls",
+              (v.video_urls ?? []).filter(
+                (_, idx) => idx !== i
+              )
+            )
+          }
+          className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-3">
+    <UploadBox
+      uploading={uploadingVideos}
+      multiple
+      onFiles={handleVideoUpload}
+      label="Add videos"
+      accept="video/*"
+    />
+  </div>
+</Card>
+
         <Card title="Display">
           <label className="flex cursor-pointer items-center gap-3">
             <input
@@ -489,11 +456,14 @@ function UploadBox({
   multiple,
   onFiles,
   label,
+  accept = "image/*",
 }: {
   uploading: boolean;
   multiple?: boolean;
   onFiles: (files: FileList) => void;
   label: string;
+  accept?: string;
+
 }) {
   return (
     <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground hover:bg-muted">
@@ -501,7 +471,7 @@ function UploadBox({
       <span>{uploading ? "Uploading…" : label}</span>
       <input
         type="file"
-        accept="image/*"
+        accept={accept}
         multiple={multiple}
         className="hidden"
         disabled={uploading}

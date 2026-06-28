@@ -109,6 +109,7 @@ export type Database = {
           features: string[]
           colors: string[]
           gallery_urls: string[]
+          video_urls: string[]
           id: string
           image_url: string
           material: string
@@ -132,6 +133,7 @@ export type Database = {
           colors?: string[]
 
           gallery_urls?: string[]
+          video_urls?: string[]
           id?: string
           image_url?: string
           material?: string
@@ -154,6 +156,7 @@ export type Database = {
           features?: string[]
           colors?: string[]
           gallery_urls?: string[]
+          video_urls?: string[]
           id?: string
           image_url?: string
           material?: string

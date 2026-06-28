@@ -10,6 +10,7 @@ export type Product = {
   price_on_request: boolean;
   image_url: string;
   gallery_urls: string[];
+  video_urls: string[];
   short_description: string;
   description: string;
   features: string[];
@@ -119,6 +120,34 @@ export async function uploadProductImage(file: File): Promise<string> {
   if (signErr) throw signErr;
   return data.signedUrl;
 }
+
+export async function uploadProductVideo(
+  file: File
+): Promise<string> {
+  const ext =
+    file.name.split(".").pop()?.toLowerCase() || "mp4";
+
+  const path = `videos/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("product-images")
+    .upload(path, file, {
+      cacheControl: "31536000",
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  const { data, error: signErr } =
+    await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, TEN_YEARS);
+
+  if (signErr) throw signErr;
+
+  return data.signedUrl;
+}
+
 
 export function slugify(s: string): string {
   return s
