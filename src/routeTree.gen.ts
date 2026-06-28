@@ -26,6 +26,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin.reviews'
+import { Route as AuthenticatedAdminProductReviewsRouteImport } from './routes/_authenticated/admin.product-reviews'
 import { Route as AuthenticatedAdminCategoriesRouteImport } from './routes/_authenticated/admin.categories'
 import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin.activity'
 import { Route as AuthenticatedAdminProductsIndexRouteImport } from './routes/_authenticated/admin.products.index'
@@ -117,6 +118,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminProductReviewsRoute =
+  AuthenticatedAdminProductReviewsRouteImport.update({
+    id: '/product-reviews',
+    path: '/product-reviews',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCategoriesRoute =
   AuthenticatedAdminCategoriesRouteImport.update({
     id: '/categories',
@@ -164,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
+  '/admin/product-reviews': typeof AuthenticatedAdminProductReviewsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -186,6 +194,7 @@ export interface FileRoutesByTo {
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
+  '/admin/product-reviews': typeof AuthenticatedAdminProductReviewsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -211,6 +220,7 @@ export interface FileRoutesById {
   '/product/$id': typeof ProductIdRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/categories': typeof AuthenticatedAdminCategoriesRoute
+  '/_authenticated/admin/product-reviews': typeof AuthenticatedAdminProductReviewsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/product/$id'
     | '/admin/activity'
     | '/admin/categories'
+    | '/admin/product-reviews'
     | '/admin/reviews'
     | '/admin/users'
     | '/admin/'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/product/$id'
     | '/admin/activity'
     | '/admin/categories'
+    | '/admin/product-reviews'
     | '/admin/reviews'
     | '/admin/users'
     | '/admin'
@@ -282,6 +294,7 @@ export interface FileRouteTypes {
     | '/product/$id'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/categories'
+    | '/_authenticated/admin/product-reviews'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/'
@@ -427,6 +440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/product-reviews': {
+      id: '/_authenticated/admin/product-reviews'
+      path: '/product-reviews'
+      fullPath: '/admin/product-reviews'
+      preLoaderRoute: typeof AuthenticatedAdminProductReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/categories': {
       id: '/_authenticated/admin/categories'
       path: '/categories'
@@ -468,6 +488,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
   AuthenticatedAdminCategoriesRoute: typeof AuthenticatedAdminCategoriesRoute
+  AuthenticatedAdminProductReviewsRoute: typeof AuthenticatedAdminProductReviewsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -479,6 +500,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminActivityRoute: AuthenticatedAdminActivityRoute,
   AuthenticatedAdminCategoriesRoute: AuthenticatedAdminCategoriesRoute,
+  AuthenticatedAdminProductReviewsRoute: AuthenticatedAdminProductReviewsRoute,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
