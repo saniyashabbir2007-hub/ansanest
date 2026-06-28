@@ -178,3 +178,35 @@ export async function createProductReview(input: {
 
   return data;
 }
+
+
+export async function listPendingProductReviews() {
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .select(`
+      *,
+      products(name)
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function approveProductReview(id: string) {
+  const { error } = await supabase
+    .from("product_reviews")
+    .update({ approved: true })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function deleteProductReview(id: string) {
+  const { error } = await supabase
+    .from("product_reviews")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
