@@ -242,7 +242,7 @@ className="rounded-full bg-emerald/10 text-emerald px-4 py-1.5 text-sm font-medi
         </div>
 
         <div className="mt-2 font-semibold">
-          {r.name}
+{r.customer_name}
         </div>
 
         <p className="mt-2 text-muted-foreground">
@@ -293,11 +293,12 @@ className="rounded-full bg-emerald/10 text-emerald px-4 py-1.5 text-sm font-medi
     <button
       onClick={() =>
         reviewMutation.mutate({
-          product_id: p.id,
-          name: reviewName,
-          rating,
-          review: reviewText,
-        })
+  product_id: p.id,
+  customer_name: reviewName,
+  email: "",
+  rating,
+  review: reviewText,
+})
       }
       className="mt-4 rounded-md bg-emerald px-6 py-3 text-white"
     >

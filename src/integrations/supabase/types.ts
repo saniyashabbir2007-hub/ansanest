@@ -168,6 +168,41 @@ export type Database = {
         }
         Relationships: []
       }
+
+      product_reviews: {
+  Row: {
+    id: string
+    product_id: string
+    customer_name: string
+    email: string
+    rating: number
+    review: string
+    approved: boolean
+    created_at: string
+  }
+  Insert: {
+    id?: string
+    product_id: string
+    customer_name: string
+    email?: string
+    rating: number
+    review: string
+    approved?: boolean
+    created_at?: string
+  }
+  Update: {
+    id?: string
+    product_id?: string
+    customer_name?: string
+    email?: string
+    rating?: number
+    review?: string
+    approved?: boolean
+    created_at?: string
+  }
+  Relationships: []
+}
+
       reviews: {
         Row: {
           created_at: string

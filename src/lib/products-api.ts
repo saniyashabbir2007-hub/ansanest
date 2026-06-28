@@ -14,7 +14,6 @@ export type Product = {
   description: string;
   features: string[];
   colors: string[];
-  color_variants: any[];
   material: string;
   dimensions: string;
   availability: string;
@@ -133,7 +132,8 @@ export function slugify(s: string): string {
 export type ProductReview = {
   id: string;
   product_id: string;
-  name: string;
+  customer_name: string;
+  email: string;
   rating: number;
   review: string;
   approved: boolean;
@@ -156,14 +156,19 @@ export async function listProductReviews(
 }
 export async function createProductReview(input: {
   product_id: string;
-  name: string;
+  customer_name: string;
+  email?: string;
   rating: number;
   review: string;
 }) {
   const { data, error } = await supabase
     .from("product_reviews")
     .insert({
-      ...input,
+      product_id: input.product_id,
+      customer_name: input.customer_name,
+      email: input.email || "",
+      rating: input.rating,
+      review: input.review,
       approved: false,
     })
     .select()
