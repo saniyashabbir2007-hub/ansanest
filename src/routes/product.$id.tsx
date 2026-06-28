@@ -81,7 +81,13 @@ const gallery =
     ? variants[selectedColor]?.images ?? [p.image_url]
     : p.gallery_urls.length > 0
     ? p.gallery_urls
-    : [p.image_url];  const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
+    : [p.image_url];
+
+const media = [
+  ...gallery,
+  ...(p.video_urls ?? []),
+];
+  const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
   const waMsg = productInquiry(p.name);
   const emailSubject = encodeURIComponent(`Inquiry: ${p.name}`);
   const emailBody = encodeURIComponent(`Hello,\n\nI am interested in the ${p.name} (${priceLabel}).\nPlease share more details.\n\nThank you.`);
@@ -99,18 +105,43 @@ const gallery =
       <div className="mt-8 grid gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <div className="overflow-hidden rounded-2xl bg-muted">
-            <img src={gallery[active]} alt={p.name} className="aspect-[4/3] w-full object-cover" />
-          </div>
-          {gallery.length > 1 && (
+  {media[active]?.includes("/videos/") ||
+  media[active]?.match(/\.(mp4|webm|mov)$/i) ? (
+    <video
+      src={media[active]}
+      controls
+      className="aspect-[4/3] w-full object-cover"
+    />
+  ) : (
+    <img
+      src={media[active]}
+      alt={p.name}
+      className="aspect-[4/3] w-full object-cover"
+    />
+  )}
+</div>
+{media.length > 1 && (
             <div className="mt-4 grid grid-cols-4 gap-3">
-              {gallery.map((g: string, i: number) => (
+              {media.map((g: string, i: number) => (
                 <button
                   key={i}
                   onClick={() => setActive(i)}
                   className={`overflow-hidden rounded-lg border-2 transition-colors ${active === i ? "border-emerald" : "border-transparent"}`}
                 >
-                  <img src={g} alt="" className="aspect-square w-full object-cover" loading="lazy" />
-                </button>
+{g.includes("/videos/") ||
+g.match(/\.(mp4|webm|mov)$/i) ? (
+  <video
+    src={g}
+    className="aspect-square w-full object-cover"
+  />
+) : (
+  <img
+    src={g}
+    alt=""
+    className="aspect-square w-full object-cover"
+    loading="lazy"
+  />
+)}                </button>
               ))}
             </div>
           )}
