@@ -86,8 +86,8 @@ const gallery =
     : [p.image_url];
 
 const media = [
-  ...gallery,
   ...(p.video_urls ?? []),
+  ...gallery,
 ];
   const priceLabel = p.price_on_request ? "Price on Request" : p.price != null ? inr(Number(p.price)) : "—";
   const waMsg = productInquiry(p.name);
@@ -110,10 +110,13 @@ const media = [
   {media[active]?.includes("/videos/") ||
   media[active]?.match(/\.(mp4|webm|mov)$/i) ? (
     <video
-      src={media[active]}
-      controls
-      className="aspect-[4/3] w-full object-cover"
-    />
+  src={media[active]}
+  controls
+  autoPlay
+  muted
+  playsInline
+  className="aspect-[4/3] w-full object-cover"
+/>
   ) : (
     <img
       src={media[active]}
