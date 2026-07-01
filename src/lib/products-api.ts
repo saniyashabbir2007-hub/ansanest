@@ -15,6 +15,10 @@ export type Product = {
   description: string;
   features: string[];
   colors: string[];
+  color_variants?: {
+  name: string;
+  images: string[];
+}[];
   material: string;
   dimensions: string;
   availability: string;
@@ -89,13 +93,13 @@ export async function deleteCategory(id: string) {
 export type ProductInput = Omit<Product, "id" | "created_at" | "updated_at">;
 
 export async function createProduct(input: ProductInput) {
-  const { data, error } = await supabase.from("products").insert(input).select().single();
+  const { data, error } = await supabase.from("products").insert(input as any).select().single();
   if (error) throw error;
   return data as Product;
 }
 
 export async function updateProduct(id: string, patch: Partial<ProductInput>) {
-  const { error } = await supabase.from("products").update(patch).eq("id", id);
+  const { error } = await supabase.from("products").update(patch as any).eq("id", id);
   if (error) throw error;
 }
 
