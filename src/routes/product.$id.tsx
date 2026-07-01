@@ -164,9 +164,7 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
             <span className="text-sm text-muted-foreground">4.0 · Customer Rated</span>
           </div>
 
-          <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
-          <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
-           {variants.length > 0 && (
+          {variants.length > 0 && (
   <div className="mt-4">
     <h3 className="mb-3 text-sm font-semibold">
       Select Color
@@ -194,6 +192,10 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
   </div>
 )}
 
+
+          <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
+          <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
+           
 
          
 
