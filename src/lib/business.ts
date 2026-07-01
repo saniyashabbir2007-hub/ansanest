@@ -2,8 +2,8 @@ export const BUSINESS = {
   name: "Ansa Nest",
   tagline: "Crafted for Comfort",
   owner: "[Owner Name]",
-  phone: "+91 96518 86293",
-  phoneRaw: "+919651886293",
+  phone: "+91 9838992444",
+  phoneRaw: "919838992444",
   whatsapp: "919651886293", // country code + number, no +
   email: "contact.ansanest@gmail.com",
   address: "Oshiwara, Jogeshwari, Maharashtra, India 400102",
