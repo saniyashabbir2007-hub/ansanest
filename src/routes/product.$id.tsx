@@ -78,13 +78,16 @@ const reviewMutation = useMutation({
 
 const variants = (p as any).color_variants ?? [];
 
+const selectedVariantImages =
+  variants[selectedColor]?.images ?? [];
+
 const gallery =
-  variants.length > 0
-    ? variants[selectedColor]?.images ?? [p.image_url]
+  selectedVariantImages.length > 0
+    ? [...selectedVariantImages, ...p.gallery_urls]
     : p.gallery_urls.length > 0
     ? p.gallery_urls
     : [p.image_url];
-
+    
 const media = [
   ...(p.video_urls ?? []),
   ...gallery,
