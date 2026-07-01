@@ -277,6 +277,126 @@ onSubmit({
     className={inputCls}
   />
 </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Material">
+              <input
+                value={v.material}
+                onChange={(e) => set("material", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Dimensions">
+              <input
+                value={v.dimensions}
+                onChange={(e) => set("dimensions", e.target.value)}
+                placeholder='e.g. 88"W × 38"D × 30"H'
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <Field label="Availability">
+            <select
+              value={v.availability}
+              onChange={(e) => set("availability", e.target.value)}
+              className={inputCls}
+            >
+              <option>In Stock</option>
+              <option>Made to Order</option>
+              <option>Limited Stock</option>
+            </select>
+          </Field>
+        </Card>
+      </div>
+
+      
+
+      <div className="space-y-6">
+        <Card title="Main image *">
+          {v.image_url ? (
+            <div className="relative">
+              <img src={v.image_url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
+              <button
+                type="button"
+                onClick={() => set("image_url", "")}
+                className="absolute right-2 top-2 rounded-full bg-background/90 p-1 hover:bg-background"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <UploadBox
+              uploading={uploadingMain}
+              onFiles={(files) => files[0] && handleMainUpload(files[0])}
+              label="Upload main image"
+            />
+          )}
+        </Card>
+
+        <Card title="Gallery">
+          <div className="grid grid-cols-3 gap-2">
+            {v.gallery_urls.map((url, i) => (
+              <div key={i} className="relative">
+                <img src={url} alt="" className="aspect-square w-full rounded-md object-cover" />
+                <button
+                  type="button"
+                  onClick={() =>
+                    set("gallery_urls", v.gallery_urls.filter((_, idx) => idx !== i))
+                  }
+                  className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3">
+            <UploadBox
+              uploading={uploadingGallery}
+              multiple
+              onFiles={handleGalleryUpload}
+              label="Add gallery images"
+            />
+          </div>
+        </Card>
+
+        <Card title="Videos">
+  <div className="grid gap-3">
+    {(v.video_urls ?? []).map((url, i) => (
+      <div key={i} className="relative">
+        <video
+          src={url}
+          controls
+          className="w-full rounded-md"
+        />
+
+        <button
+          type="button"
+          onClick={() =>
+            set(
+              "video_urls",
+              (v.video_urls ?? []).filter(
+                (_, idx) => idx !== i
+              )
+            )
+          }
+          className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-3">
+    <UploadBox
+      uploading={uploadingVideos}
+      multiple
+      onFiles={handleVideoUpload}
+      label="Add videos"
+      accept="video/*"
+    />
+  </div>
+</Card>
 <Card title="Color Variants">
   <div className="space-y-4">
     {(v.color_variants || []).map((variant: any, index: number) => (
@@ -383,124 +503,7 @@ onSubmit({
     </button>
   </div>
 </Card>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Material">
-              <input
-                value={v.material}
-                onChange={(e) => set("material", e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Dimensions">
-              <input
-                value={v.dimensions}
-                onChange={(e) => set("dimensions", e.target.value)}
-                placeholder='e.g. 88"W × 38"D × 30"H'
-                className={inputCls}
-              />
-            </Field>
-          </div>
-          <Field label="Availability">
-            <select
-              value={v.availability}
-              onChange={(e) => set("availability", e.target.value)}
-              className={inputCls}
-            >
-              <option>In Stock</option>
-              <option>Made to Order</option>
-              <option>Limited Stock</option>
-            </select>
-          </Field>
-        </Card>
-      </div>
-
-      <div className="space-y-6">
-        <Card title="Main image *">
-          {v.image_url ? (
-            <div className="relative">
-              <img src={v.image_url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
-              <button
-                type="button"
-                onClick={() => set("image_url", "")}
-                className="absolute right-2 top-2 rounded-full bg-background/90 p-1 hover:bg-background"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <UploadBox
-              uploading={uploadingMain}
-              onFiles={(files) => files[0] && handleMainUpload(files[0])}
-              label="Upload main image"
-            />
-          )}
-        </Card>
-
-        <Card title="Gallery">
-          <div className="grid grid-cols-3 gap-2">
-            {v.gallery_urls.map((url, i) => (
-              <div key={i} className="relative">
-                <img src={url} alt="" className="aspect-square w-full rounded-md object-cover" />
-                <button
-                  type="button"
-                  onClick={() =>
-                    set("gallery_urls", v.gallery_urls.filter((_, idx) => idx !== i))
-                  }
-                  className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <UploadBox
-              uploading={uploadingGallery}
-              multiple
-              onFiles={handleGalleryUpload}
-              label="Add gallery images"
-            />
-          </div>
-        </Card>
-
-        <Card title="Videos">
-  <div className="grid gap-3">
-    {(v.video_urls ?? []).map((url, i) => (
-      <div key={i} className="relative">
-        <video
-          src={url}
-          controls
-          className="w-full rounded-md"
-        />
-
-        <button
-          type="button"
-          onClick={() =>
-            set(
-              "video_urls",
-              (v.video_urls ?? []).filter(
-                (_, idx) => idx !== i
-              )
-            )
-          }
-          className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    ))}
-  </div>
-
-  <div className="mt-3">
-    <UploadBox
-      uploading={uploadingVideos}
-      multiple
-      onFiles={handleVideoUpload}
-      label="Add videos"
-      accept="video/*"
-    />
-  </div>
-</Card>
+S
 
         <Card title="Display">
           <label className="flex cursor-pointer items-center gap-3">
