@@ -7,7 +7,7 @@ export function ChatWidget() {
 
   return (
     <>
-      <div className="group fixed bottom-15 right-6 z-50">
+      <div className="group fixed bottom-8 right-6 z-50">
        <button
         onClick={() => setOpen((v) => !v)}
         className={`
@@ -56,7 +56,7 @@ hover:bg-[#145541]
  </div>
 
       {open && (
-        <div className="fixed bottom-15 right-6 z-50">
+        <div className="fixed bottom-8 right-6 z-50">
           <ChatWindow />
         </div>
       )}
