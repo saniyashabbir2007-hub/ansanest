@@ -22,6 +22,10 @@ export type Product = {
   material: string;
   dimensions: string;
   availability: string;
+  delivery_time: string | null;
+customizable: boolean;
+warranty: string | null;
+care_instructions: string | null;
   featured: boolean;
   sort_order: number;
   created_at: string;

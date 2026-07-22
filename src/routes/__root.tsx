@@ -16,6 +16,7 @@ import { Footer } from "@/components/site/Footer";
 import { WhatsAppFloat } from "@/components/site/WhatsAppFloat";
 import { Toaster } from "@/components/ui/sonner";
 import { BUSINESS } from "@/lib/business";
+import { ChatWidget } from "@/components/site/ChatWidget";
 
 function NotFoundComponent() {
   return (
@@ -111,6 +112,7 @@ function RootComponent() {
         <main className="flex-1"><Outlet /></main>
         <Footer />
         <WhatsAppFloat />
+        <ChatWidget />
         <Toaster />
       </div>
     </QueryClientProvider>
