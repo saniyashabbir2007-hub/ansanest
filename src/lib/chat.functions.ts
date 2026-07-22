@@ -30,6 +30,43 @@ export const askGemini = createServerFn({
     }
 
     const question = data.message.toLowerCase();
+    const searchQuery = question
+  .replace(
+    /\b(show me|find|looking for|search|i need|i want|can you show me|display)\b/gi,
+    ""
+  )
+  .trim();
+  const synonymMap: Record<string, string> = {
+  couch: "sofa",
+  couches: "sofa",
+
+  loveseat: "sofa",
+  loveseats: "sofa",
+
+  footstool: "ottoman",
+  footstools: "ottoman",
+
+  stool: "ottoman",
+
+  seat: "chair",
+  seats: "chair",
+
+  lshape: "l-shaped",
+  "l shape": "l-shaped",
+  "l shaped": "l-shaped",
+
+  corner: "corner sofa",
+
+  fabric: "upholstered",
+
+  wooden: "wood",
+
+  centre: "center",
+};
+const normalizedQuery = (searchQuery || question)
+  .split(/\s+/)
+.map((word: string) => synonymMap[word] ?? word)
+  .join(" ");
 
     //
     // OLD SOFA REPAIR QUESTIONS
@@ -52,23 +89,58 @@ export const askGemini = createServerFn({
     // LOAD PRODUCTS
     //
     const products = await listProducts();
+    //
+// PRICE FILTER DETECTION
+//
+const priceMatches = [...question.matchAll(/(\d[\d,]*)(k)?/gi)].map((m) => {
+  let value = Number(m[1].replace(/,/g, ""));
 
+  if (m[2]) {
+    value *= 1000;
+  }
+
+  return value;
+});
+
+const budget = priceMatches[0] ?? null;
+const secondBudget = priceMatches[1] ?? null;
     const matchedProduct = products.find((p) =>
   question.includes(p.name.toLowerCase())
 );
 
-const similarProducts = products.filter((p) => {
-  const q = question.trim().toLowerCase();
+const similarProducts = products
+  .map((p) => {
+const q = normalizedQuery;
 
-  return (
-  p.name?.toLowerCase().includes(q) ||
-  p.category?.toLowerCase().includes(q) ||
-  p.sub_type?.toLowerCase().includes(q) ||
-  p.short_description?.toLowerCase().includes(q) ||
-  p.description?.toLowerCase().includes(q) ||
-  p.material?.toLowerCase().includes(q)
-);
-});
+    const text = [
+      p.name,
+      p.category,
+      p.sub_type,
+      p.short_description,
+      p.description,
+      p.material,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    const words = q
+      .split(/\s+/)
+.filter((w: string) => w.length > 2)
+const score = words.reduce(
+  (total: number, word: string) => {
+          return total + (text.includes(word) ? 1 : 0);
+    }, 0);
+
+    return {
+      product: p,
+      score,
+    };
+  })
+  .filter((item) => item.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .map((item) => item.product);
+  
 
     //
     // PRICE QUESTIONS
@@ -100,18 +172,152 @@ const similarProducts = products.filter((p) => {
       };
     }
 
-    //
+ //
+// BETWEEN PRICE SEARCH
+//
+if (
+  budget &&
+  secondBudget &&
+  (question.includes("between") ||
+    question.includes("to") ||
+    question.includes("-"))
+) {
+  const min = Math.min(budget, secondBudget);
+  const max = Math.max(budget, secondBudget);
+
+  const budgetProducts = products.filter((p) => {
+    if (!p.price) return false;
+
+    return p.price >= min && p.price <= max;
+  });
+
+  if (budgetProducts.length > 0) {
+    const list = budgetProducts
+      .slice(0, 5)
+      .map((p) => `• ${p.name} - ₹${p.price}`)
+      .join("\n");
+
+    return {
+  answer: `I found ${budgetProducts.length} products.`,
+  products: budgetProducts.slice(0, 5),
+};
+  }
+}  
+//
+// PRICE RANGE SEARCH
+//
+if (
+  budget &&
+  (question.includes("under") ||
+    question.includes("below") ||
+    question.includes("less than") ||
+    question.includes("<"))
+) {
+  const budgetProducts = products.filter((p) => {
+  if (!p.price || p.price > budget) return false;
+
+  const text = [
+    p.name,
+    p.category,
+    p.sub_type,
+    p.description,
+    p.short_description,
+    p.material,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const keywords = question
+    .replace(/\d[\d,]*/g, "")
+    .replace(/under|below|less than|</gi, "")
+    .trim();
+
+  if (!keywords) return true;
+
+const words = keywords
+  .split(/\s+/)
+.filter((w: string) => w.length > 2)
+
+return words.every((word: string) => text.includes(word));
+});
+
+  if (budgetProducts.length > 0) {
+    const list = budgetProducts
+      .slice(0, 5)
+      .map((p) => `• ${p.name} - ₹${p.price}`)
+      .join("\n");
+
+    return {
+      answer: `I found ${budgetProducts.length} product${
+        budgetProducts.length > 1 ? "s" : ""
+      } under ₹${budget.toLocaleString()}:\n\n${list}\n\nWhich one would you like to know more about?`,
+    };
+  }
+}
+//
+// ABOVE PRICE SEARCH
+//
+if (
+  budget &&
+  (question.includes("above") ||
+    question.includes("more than") ||
+    question.includes("greater than") ||
+    question.includes(">"))
+) {
+  const budgetProducts = products.filter((p) => {
+    if (!p.price || p.price < budget) return false;
+
+    const text = [
+      p.name,
+      p.category,
+      p.sub_type,
+      p.description,
+      p.short_description,
+      p.material,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    const keywords = question
+      .replace(/\d[\d,]*/g, "")
+      .replace(/above|more than|greater than|>/gi, "")
+      .trim();
+
+    if (!keywords) return true;
+
+const words = keywords
+  .split(/\s+/)
+.filter((w: string) => w.length > 2)
+return words.every((word: string) => text.includes(word)); 
+ });
+
+  if (budgetProducts.length > 0) {
+    const list = budgetProducts
+      .slice(0, 5)
+      .map((p) => `• ${p.name} - ₹${p.price}`)
+      .join("\n");
+
+    return {
+      answer: `I found ${budgetProducts.length} product${
+        budgetProducts.length > 1 ? "s" : ""
+      } above ₹${budget.toLocaleString()}:\n\n${list}\n\nWhich one would you like to know more about?`,
+    };
+  }
+}
+ //
 // SIMILAR PRODUCT SUGGESTIONS
 //
 if (!matchedProduct && similarProducts.length > 0) {
   const suggestions = similarProducts
     .slice(0, 5)
-    .map((p) => {
-      const price = p.price
+.map((p, index) => {
+        const price = p.price
         ? `₹${p.price}`
         : "Price on Request";
 
-      return `• ${p.name} (${price})`;
+return `${index + 1}. ${p.name} (${price})`;
     })
     .join("\n");
 
