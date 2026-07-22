@@ -8,22 +8,21 @@ export function ChatWidget() {
   return (
     <>
       <div className="group fixed bottom-8 right-5 z-50">
-        </div><button
+       <button
         onClick={() => setOpen((v) => !v)}
         className={`
-          fixed bottom-8 right-5 z-50
           flex items-center justify-center
           rounded-full
-          bg-[#F8F5EF]
-          w-16 h-16
-          text-[#0B3B2E]
-          border border-[#D6C7A1]
-          shadow- xl
+bg-[#0B3B2E]
+w-[68px] h-[68px]
+          text-white
+          border border-white/10
+          shadow-[0_8px_24px_rgba(0,0,0,0.18)]
           transition-all
-          duration-300
-          hover:scale-110
-          hover:bg-[#124c3c]
-          hover:shadow-[0_10px_30px_rgba(11,59,46,0.25)]
+          duration-200
+          hover:scale-105 active:scale-95
+hover:bg-[#145541]
+          hover:shadow-[0_14px_36px_rgba(0,0,0,0.25)]
           ${
             !open
   ? "shadow-[0_6px_20px_rgba(11,59,46,0.18)]"
@@ -34,9 +33,10 @@ export function ChatWidget() {
         {open ? (
           <X size={20} />
         ) : (
-            <Sofa size={28} strokeWidth={2} />
+            <Sofa size={32} strokeWidth={1.8} />
         )}
       </button>
+  
       <div
   className="
     absolute right-20 top-1/2 -translate-y-1/2
@@ -44,15 +44,16 @@ export function ChatWidget() {
     transition-opacity duration-200
     pointer-events-none
     whitespace-nowrap
-    rounded-lg
-    bg-[#0B3B2E]
-    px-3 py-2
-    text-sm text-white
+    rounded-xl
+    bg-[#1C1C1C]
+    px-4 py-2.5
+    text-sm font-medium text-white
     shadow-lg
   "
 >
   Furniture Expert
 </div>
+ </div>
 
       {open && (
         <div className="fixed bottom-40 right-5 z-50">
