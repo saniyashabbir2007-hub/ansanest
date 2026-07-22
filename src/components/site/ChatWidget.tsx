@@ -16,8 +16,8 @@ export function ChatWidget() {
           bg-white
           w-[56px] h-[56px]
           text-[#0B3B2E]
-          border border-[#D9C6A3]
-          shadow-lg
+          border border-[#E7D8B6]
+          shadow-md
           transition-all
           duration-200
           hover:scale-105 active:scale-95
@@ -56,7 +56,7 @@ hover:bg-[#145541]
  </div>
 
       {open && (
-        <div className="fixed bottom-40 right-5 z-50">
+        <div className="fixed bottom-24 right-5 z-50">
           <ChatWindow />
         </div>
       )}
