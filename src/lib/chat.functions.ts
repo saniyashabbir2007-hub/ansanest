@@ -255,6 +255,20 @@ return words.every((word: string) => text.includes(word));
     };
   }
 }
+const allBudgetProducts = products.filter(
+  (p) => p.price && p.price <= budget
+);
+
+if (allBudgetProducts.length > 0) {
+  const list = allBudgetProducts
+    .slice(0, 5)
+    .map((p) => `• ${p.name} - ₹${p.price}`)
+    .join("\n");
+
+  return {
+    answer: `No products matching your keyword were found under ₹${budget.toLocaleString()}.\n\nHere are some products under ₹${budget.toLocaleString()}:\n\n${list}`,
+  };
+}
 //
 // ABOVE PRICE SEARCH
 //
