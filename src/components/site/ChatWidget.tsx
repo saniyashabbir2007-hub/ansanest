@@ -7,22 +7,22 @@ export function ChatWidget() {
 
   return (
     <>
-      <div className="group fixed bottom-8 right-5 z-50">
+      <div className="group fixed bottom-24 right-5 z-50">
        <button
         onClick={() => setOpen((v) => !v)}
         className={`
           flex items-center justify-center
           rounded-full
-bg-[#0B3B2E]
-w-[68px] h-[68px]
-          text-white
-          border border-white/10
-          shadow-[0_8px_24px_rgba(0,0,0,0.18)]
+          bg-white
+          w-[56px] h-[56px]
+          text-[#0B3B2E]
+          border border-[#D9C6A3]
+          shadow-lg
           transition-all
           duration-200
           hover:scale-105 active:scale-95
 hover:bg-[#145541]
-          hover:shadow-[0_14px_36px_rgba(0,0,0,0.25)]
+          hover:shadow-xl
           ${
             !open
   ? "shadow-[0_6px_20px_rgba(11,59,46,0.18)]"
@@ -33,7 +33,7 @@ hover:bg-[#145541]
         {open ? (
           <X size={20} />
         ) : (
-            <Sofa size={32} strokeWidth={1.8} />
+<span className="text-[26px] leading-none">🛋️</span>
         )}
       </button>
   
