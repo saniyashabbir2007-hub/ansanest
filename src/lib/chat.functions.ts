@@ -54,8 +54,21 @@ export const askGemini = createServerFn({
     const products = await listProducts();
 
     const matchedProduct = products.find((p) =>
-      question.includes(p.name.toLowerCase())
-    );
+  question.includes(p.name.toLowerCase())
+);
+
+const similarProducts = products.filter((p) => {
+  const q = question.trim().toLowerCase();
+
+  return (
+  p.name?.toLowerCase().includes(q) ||
+  p.category?.toLowerCase().includes(q) ||
+  p.sub_type?.toLowerCase().includes(q) ||
+  p.short_description?.toLowerCase().includes(q) ||
+  p.description?.toLowerCase().includes(q) ||
+  p.material?.toLowerCase().includes(q)
+);
+});
 
     //
     // PRICE QUESTIONS
@@ -86,6 +99,28 @@ export const askGemini = createServerFn({
           : "This product's warranty information is currently unavailable. Please contact us on WhatsApp.",
       };
     }
+
+    //
+// SIMILAR PRODUCT SUGGESTIONS
+//
+if (!matchedProduct && similarProducts.length > 0) {
+  const suggestions = similarProducts
+    .slice(0, 5)
+    .map((p) => {
+      const price = p.price
+        ? `₹${p.price}`
+        : "Price on Request";
+
+      return `• ${p.name} (${price})`;
+    })
+    .join("\n");
+
+  return {
+    answer: `I found ${similarProducts.length} product${
+      similarProducts.length > 1 ? "s" : ""
+    } related to "${data.message}":\n\n${suggestions}\n\nWhich one would you like to know more about?`,
+  };
+}
 
     //
     // BUILD PRODUCT CONTEXT FOR GEMINI
