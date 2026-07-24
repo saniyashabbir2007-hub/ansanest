@@ -1,9 +1,27 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Sofa } from "lucide-react";
 import { ChatWindow } from "./ChatWindow";
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const chatRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    if (
+      open &&
+      chatRef.current &&
+      !chatRef.current.contains(event.target as Node)
+    ) {
+      setOpen(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [open]);
 
   return (
     <>
@@ -56,7 +74,9 @@ hover:bg-[#145541]
  </div>
 
       {open && (
-        <div className="fixed bottom-7 right-6 z-50">
+        <div 
+        ref={chatRef}
+        className="fixed bottom-7 right-6 z-50">
           <ChatWindow />
         </div>
       )}
