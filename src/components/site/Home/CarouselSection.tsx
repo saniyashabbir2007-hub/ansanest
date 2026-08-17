@@ -1,9 +1,8 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import { Product } from "@/lib/products-api";
-import { HomeProductCard } from "./HomeProductCard";
+import SectionHead from "@/components/site/SectionHead";
+import { HomeProductCard } from "@/components/site/Home/HomeProductCard";
 
-interface Props {
+interface CarouselSectionProps {
   eyebrow: string;
   title: string;
   items: Product[];
@@ -15,59 +14,25 @@ export function CarouselSection({
   title,
   items,
   muted = false,
-}: Props) {
-  if (!items || items.length === 0) {
-    return null;
-  }
+}: CarouselSectionProps) {
+  if (items.length === 0) return null;
 
   return (
     <section
-      className={`py-12 sm:py-16 lg:py-20 ${
-        muted ? "bg-card/30" : "bg-background"
-      }`}
+      className={
+        muted
+          ? "bg-muted/40 py-8 sm:py-10"
+          : "py-8 sm:py-10"
+      }
     >
       <div className="container-px mx-auto max-w-7xl">
+        <SectionHead eyebrow={eyebrow} title={title} />
 
-        {/* SECTION HEADER */}
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[9px] uppercase tracking-[0.28em] text-emerald sm:text-[10px]">
-              {eyebrow}
-            </p>
-
-            <h2 className="mt-2 font-display text-3xl leading-tight text-foreground sm:text-4xl lg:text-5xl">
-              {title}
-            </h2>
-          </div>
-
-          {/* Desktop View All */}
-          <Link
-            to="/catalog"
-            className="
-              hidden
-              shrink-0
-              items-center
-              gap-1.5
-              text-xs
-              font-medium
-              text-foreground
-              transition-opacity
-              hover:opacity-60
-              sm:flex
-            "
-          >
-            View All
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        {/* PRODUCTS
-            MOBILE = COMPACT HORIZONTAL SCROLL
-            DESKTOP = NORMAL GRID
-        */}
+        {/* Mobile = compact horizontal scroll
+            Desktop = normal grid */}
         <div
           className="
-            mt-6
+            mt-5
             flex
             gap-2.5
             overflow-x-auto
@@ -77,18 +42,18 @@ export function CarouselSection({
             snap-mandatory
             scrollbar-hide
 
-            sm:mt-8
+            sm:mt-6
             sm:gap-3
 
             md:grid
             md:grid-cols-3
-            md:gap-5
+            md:gap-4
             md:overflow-visible
             md:pb-0
             md:snap-none
 
-            lg:grid-cols-5
-            lg:gap-4
+            lg:grid-cols-4
+            xl:grid-cols-5
           "
         >
           {items.map((product) => (
@@ -113,32 +78,10 @@ export function CarouselSection({
           ))}
         </div>
 
-        {/* MOBILE VIEW ALL */}
-        <div className="mt-4 sm:hidden">
-          <Link
-            to="/catalog"
-            className="
-              inline-flex
-              items-center
-              gap-2
-              rounded-full
-              border
-              border-border
-              px-4
-              py-2
-              text-xs
-              font-medium
-              text-foreground
-              transition-colors
-              hover:bg-foreground
-              hover:text-background
-            "
-          >
-            View All
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+        {/* Small mobile scroll hint */}
+        <div className="mt-2 text-[9px] text-muted-foreground sm:hidden">
+          Swipe to explore →
         </div>
-
       </div>
     </section>
   );

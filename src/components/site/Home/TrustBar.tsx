@@ -55,7 +55,6 @@ export function TrustBar() {
                   lg:p-6
                 "
               >
-                {/* ICON */}
                 <div
                   className="
                     flex
@@ -88,7 +87,6 @@ export function TrustBar() {
                   />
                 </div>
 
-                {/* TITLE */}
                 <h3
                   className="
                     mt-2
@@ -107,7 +105,6 @@ export function TrustBar() {
                   {item.title}
                 </h3>
 
-                {/* DESCRIPTION */}
                 <p
                   className="
                     mt-1
