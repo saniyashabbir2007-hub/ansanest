@@ -14,20 +14,6 @@ import { TestimonialsSection } from "@/components/site/TestimonialsSection";
 import { TrustBar } from "@/components/site/Home/TrustBar";
 import { CarouselSection } from "@/components/site/Home/CarouselSection";
 
-/*
- * ============================================================
- * HOMEPAGE COLLECTION IMAGE ROTATION
- * ============================================================
- *
- * TESTING:
- * 10 seconds
- *
- * FINAL:
- * 60 seconds
- *
- * Once we confirm that rotation works correctly,
- * change 10_000 to 60_000.
- */
 const COLLECTION_ROTATION_MS = 30_000;
 
 export const Route = createFileRoute("/")({
@@ -62,11 +48,9 @@ function Index() {
     queryFn: listProducts,
   });
 
-  /*
-   * ============================================================
-   * PRODUCT GROUPS
-   * ============================================================
-   */
+  /* ============================================================
+     PRODUCT GROUPS
+  ============================================================ */
 
   const featured = products.filter((p) => p.featured);
 
@@ -90,19 +74,9 @@ function Index() {
     (p) => p.category === "Upholstered Bed"
   );
 
-  /*
-   * ============================================================
-   * COLLECTION IMAGE POOLS
-   * ============================================================
-   *
-   * Each collection uses:
-   *
-   * 1. Product main image
-   * 2. Product gallery images
-   *
-   * Therefore the homepage uses actual ANSA NEST catalog
-   * photography instead of separate static collection images.
-   */
+  /* ============================================================
+     COLLECTION IMAGE POOLS
+  ============================================================ */
 
   const getProductImages = (product: any): string[] => {
     const images: string[] = [];
@@ -124,47 +98,44 @@ function Index() {
     return [...new Set(images)];
   };
 
- const normalizeText = (value: unknown) =>
-  String(value ?? "")
-    .trim()
-    .toLowerCase();
+  const normalizeText = (value: unknown) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
 
-const sofaCollectionImages = products
-  .filter((p) => {
-    const category = normalizeText(p.category);
-    const subType = normalizeText(p.sub_type);
+  const sofaCollectionImages = products
+    .filter((p) => {
+      const category = normalizeText(p.category);
+      const subType = normalizeText(p.sub_type);
+      const text = `${category} ${subType}`;
 
-    const text = `${category} ${subType}`;
+      return (
+        text.includes("sofa") ||
+        text.includes("sectional")
+      );
+    })
+    .flatMap(getProductImages);
 
-    return (
-      text.includes("sofa") ||
-      text.includes("sectional")
-    );
-  })
-  .flatMap(getProductImages);
+  const bedCollectionImages = products
+    .filter((p) => {
+      const category = normalizeText(p.category);
+      const subType = normalizeText(p.sub_type);
+      const text = `${category} ${subType}`;
 
-const bedCollectionImages = products
-  .filter((p) => {
-    const category = normalizeText(p.category);
-    const subType = normalizeText(p.sub_type);
+      return (
+        text.includes("bed") ||
+        text.includes("upholstered bed")
+      );
+    })
+    .flatMap(getProductImages);
 
-    const text = `${category} ${subType}`;
+  const customCollectionImages = products
+    .filter((p) => p.customizable === true)
+    .flatMap(getProductImages);
 
-    return (
-      text.includes("bed") ||
-      text.includes("upholstered bed")
-    );
-  })
-  .flatMap(getProductImages);
-
-const customCollectionImages = products
-  .filter((p) => p.customizable === true)
-  .flatMap(getProductImages);
-  /*
-   * ============================================================
-   * COLLECTION ROTATION STATE
-   * ============================================================
-   */
+  /* ============================================================
+     COLLECTION ROTATION STATE
+  ============================================================ */
 
   const [collectionImageIndex, setCollectionImageIndex] =
     useState({
@@ -173,11 +144,9 @@ const customCollectionImages = products
       custom: 0,
     });
 
-  /*
-   * ============================================================
-   * COLLECTION ROTATION TIMER
-   * ============================================================
-   */
+  /* ============================================================
+     COLLECTION ROTATION TIMER
+  ============================================================ */
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -210,12 +179,6 @@ const customCollectionImages = products
     bedCollectionImages.length,
     customCollectionImages.length,
   ]);
-
-  /*
-   * ============================================================
-   * HOMEPAGE
-   * ============================================================
-   */
 
   return (
     <div>
@@ -259,9 +222,7 @@ const customCollectionImages = products
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
 
-          {/* ==================================================
-              SOFAS & SECTIONALS
-          ================================================== */}
+          {/* SOFAS & SECTIONALS */}
 
           <Link
             to="/catalog"
@@ -276,7 +237,9 @@ const customCollectionImages = products
                       key={`sofa-${image}-${index}`}
                       src={image}
                       alt="ANSA NEST Sofas & Sectionals"
-                      loading={index === 0 ? "eager" : "lazy"}
+                      loading={
+                        index === 0 ? "eager" : "lazy"
+                      }
                       className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1800ms] ${
                         index ===
                         collectionImageIndex.sofas
@@ -297,7 +260,6 @@ const customCollectionImages = products
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-
                 <div className="text-xs uppercase tracking-[0.25em] text-gold">
                   Collection
                 </div>
@@ -309,14 +271,11 @@ const customCollectionImages = products
                 <div className="mt-1 text-sm text-white/80">
                   L-shape, U-shape, modular, curved.
                 </div>
-
               </div>
             </div>
           </Link>
 
-          {/* ==================================================
-              UPHOLSTERED BEDS
-          ================================================== */}
+          {/* UPHOLSTERED BEDS */}
 
           <Link
             to="/catalog"
@@ -331,7 +290,9 @@ const customCollectionImages = products
                       key={`bed-${image}-${index}`}
                       src={image}
                       alt="ANSA NEST Upholstered Beds"
-                      loading={index === 0 ? "eager" : "lazy"}
+                      loading={
+                        index === 0 ? "eager" : "lazy"
+                      }
                       className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1800ms] ${
                         index ===
                         collectionImageIndex.beds
@@ -352,7 +313,6 @@ const customCollectionImages = products
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-
                 <div className="text-xs uppercase tracking-[0.25em] text-gold">
                   Collection
                 </div>
@@ -364,14 +324,11 @@ const customCollectionImages = products
                 <div className="mt-1 text-sm text-white/80">
                   Wingback, platform, tufted classics.
                 </div>
-
               </div>
             </div>
           </Link>
 
-          {/* ==================================================
-              CUSTOM UPHOLSTERY
-          ================================================== */}
+          {/* CUSTOM UPHOLSTERY */}
 
           <Link
             to="/contact"
@@ -386,7 +343,9 @@ const customCollectionImages = products
                       key={`custom-${image}-${index}`}
                       src={image}
                       alt="ANSA NEST Custom Upholstery"
-                      loading={index === 0 ? "eager" : "lazy"}
+                      loading={
+                        index === 0 ? "eager" : "lazy"
+                      }
                       className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1800ms] ${
                         index ===
                         collectionImageIndex.custom
@@ -407,7 +366,6 @@ const customCollectionImages = products
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-
                 <div className="text-xs uppercase tracking-[0.25em] text-gold">
                   Collection
                 </div>
@@ -419,7 +377,6 @@ const customCollectionImages = products
                 <div className="mt-1 text-sm text-white/80">
                   Built around your space. Made to your vision.
                 </div>
-
               </div>
             </div>
           </Link>
@@ -548,18 +505,72 @@ function DynamicHero({
   return (
     <section className="relative isolate overflow-hidden">
 
-      <div className="container-px mx-auto grid max-w-7xl items-center gap-6 py-6 sm:gap-8 sm:py-8 md:grid-cols-[1.05fr_1fr] md:gap-10 md:py-10">
+      <div
+        className="
+          container-px
+          mx-auto
+          grid
+          max-w-7xl
+          items-center
+
+          gap-1.5
+          py-1.5
+
+          sm:gap-8
+          sm:py-8
+
+          md:grid-cols-[1.05fr_1fr]
+          md:gap-10
+          md:py-10
+        "
+      >
 
         {/* HERO TEXT */}
 
         <div>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-emerald sm:text-xs">
+          <div
+            className="
+              inline-flex
+              items-center
+              gap-2
+              rounded-full
+              border
+              border-gold/40
+              bg-gold/10
+              px-3
+              py-1
+              text-[9px]
+              uppercase
+              tracking-[0.22em]
+              text-emerald
+
+              sm:text-xs
+            "
+          >
             <Sparkles className="h-3 w-3" />
             WELCOME TO ANSA NEST
           </div>
 
-          <h1 className="mt-3 max-w-xl font-display text-2xl leading-[1.08] text-balance text-foreground sm:mt-4 sm:text-3xl md:mt-5 md:text-5xl lg:text-6xl">
+          <h1
+            className="
+              mt-1.5
+              max-w-xl
+              font-display
+              text-[1.5rem]
+              leading-[1.05]
+              text-balance
+              text-foreground
+
+              sm:mt-4
+              sm:text-3xl
+
+              md:mt-5
+              md:text-5xl
+
+              lg:text-6xl
+            "
+          >
             Timeless{" "}
             <em className="italic text-emerald">
               Furniture
@@ -568,26 +579,87 @@ function DynamicHero({
             for modern living.
           </h1>
 
-          <p className="mt-3 max-w-lg text-xs leading-relaxed text-muted-foreground sm:mt-4 sm:text-sm md:text-base">
+          <p
+            className="
+              mt-1.5
+              max-w-lg
+              text-[11px]
+              leading-relaxed
+              text-muted-foreground
+
+              sm:mt-4
+              sm:text-sm
+
+              md:text-base
+            "
+          >
             Thoughtfully crafted sofas, upholstered beds
             and bespoke furniture designed to bring
             timeless elegance and exceptional comfort
             into every home.
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-2.5 sm:mt-6 sm:gap-3">
+          <div
+            className="
+              mt-2.5
+              flex
+              flex-wrap
+              gap-2
+
+              sm:mt-6
+              sm:gap-3
+            "
+          >
 
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-6 sm:py-3 sm:text-sm"
+              className="
+                inline-flex
+                items-center
+                gap-1.5
+                rounded-full
+                bg-foreground
+                px-4
+                py-2
+                text-[11px]
+                font-medium
+                text-background
+                transition-opacity
+                hover:opacity-90
+
+                sm:gap-2
+                sm:px-6
+                sm:py-3
+                sm:text-sm
+              "
             >
               Explore Catalog
-              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
             </Link>
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 px-5 py-2.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-6 sm:py-3 sm:text-sm"
+              className="
+                inline-flex
+                items-center
+                gap-1.5
+                rounded-full
+                border
+                border-foreground/20
+                px-4
+                py-2
+                text-[11px]
+                font-medium
+                text-foreground
+                transition-colors
+                hover:bg-foreground
+                hover:text-background
+
+                sm:gap-2
+                sm:px-6
+                sm:py-3
+                sm:text-sm
+              "
             >
               Book a Showroom Visit
             </Link>
@@ -599,7 +671,23 @@ function DynamicHero({
 
         <div className="relative">
 
-          <div className="relative mx-auto aspect-[16/10] w-full max-w-[560px] overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl md:aspect-[4/3]">
+          <div
+            className="
+              relative
+              mx-auto
+              aspect-[16/9]
+              w-full
+              max-w-[560px]
+              overflow-hidden
+              rounded-xl
+              shadow-lg
+
+              sm:aspect-[16/9]
+              sm:rounded-3xl
+
+              md:aspect-[4/3]
+            "
+          >
 
             {/* FALLBACK */}
 
@@ -635,7 +723,7 @@ function DynamicHero({
           {/* HERO INDICATORS */}
 
           {products.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1.5 backdrop-blur-sm">
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1.5 backdrop-blur-sm sm:bottom-4">
 
               {products
                 .slice(
@@ -677,13 +765,7 @@ function SectionHead({
   inline?: boolean;
 }) {
   return (
-    <div
-      className={
-        inline
-          ? ""
-          : "text-center"
-      }
-    >
+    <div className={inline ? "" : "text-center"}>
 
       <div className="text-xs uppercase tracking-[0.25em] text-emerald">
         {eyebrow}
