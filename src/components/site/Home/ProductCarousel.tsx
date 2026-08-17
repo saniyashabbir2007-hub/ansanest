@@ -4,9 +4,9 @@ import useEmblaCarousel from "embla-carousel-react";
 import { useCallback } from "react";
 
 import { Product } from "@/lib/products-api";
-import { ProductCard } from "@/components/site/ProductCard";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./SectionHeading";
+import { HomeProductCard } from "./HomeProductCard";
 
 interface ProductCarouselProps {
   eyebrow?: string;
@@ -39,7 +39,7 @@ export function ProductCarousel({
   if (!products.length) return null;
 
   return (
-    <section className="py-16">
+    <section className="py-8 md:py-10">
       <div className="container-px mx-auto max-w-7xl">
         <SectionHeading
           eyebrow={eyebrow}
@@ -48,25 +48,31 @@ export function ProductCarousel({
           action={
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={scrollPrev}
+                className="h-8 w-8 rounded-full border"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
 
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={scrollNext}
+                className="h-8 w-8 rounded-full border"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
 
               {viewAllHref && (
-                <Button asChild>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-sm font-medium"
+                >
                   <Link to={viewAllHref}>
-                    View All
+                    View all →
                   </Link>
                 </Button>
               )}
@@ -78,13 +84,23 @@ export function ProductCarousel({
           className="overflow-hidden"
           ref={emblaRef}
         >
-          <div className="flex gap-6">
+          <div className="flex gap-4 md:gap-5">
             {products.map((product) => (
               <div
                 key={product.id}
-                className="min-w-[310px] max-w-[310px] flex-none"
+                className="
+                  min-w-[170px]
+                  max-w-[170px]
+                  flex-none
+                  sm:min-w-[190px]
+                  sm:max-w-[190px]
+                  md:min-w-[210px]
+                  md:max-w-[210px]
+                  lg:min-w-[220px]
+                  lg:max-w-[220px]
+                "
               >
-<ProductCard p={product} />
+                <HomeProductCard p={product} />
               </div>
             ))}
           </div>

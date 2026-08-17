@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import { Product } from "@/lib/products-api";
 import { inr } from "@/lib/business";
 
@@ -19,45 +19,48 @@ export function HomeProductCard({ p }: Props) {
     <Link
       to="/product/$id"
       params={{ id: p.slug }}
-      className="group block overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="group block overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
     >
       {/* Product Image */}
-      <div className="overflow-hidden">
+      <div className="relative aspect-[1.18/1] overflow-hidden">
         <img
           src={p.image_url}
           alt={p.name}
-          className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
+        {/* Wishlist */}
+        <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 shadow-sm">
+          <Heart className="h-4 w-4 text-foreground" />
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-
-        <h3 className="line-clamp-2 font-medium text-base text-foreground">
+      {/* Compact Content */}
+      <div className="px-2.5 pb-3 pt-2">
+        <h3 className="line-clamp-1 text-sm font-medium text-foreground">
           {p.name}
         </h3>
 
-        <div className="mt-2 flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Star
-              key={i}
-              className="h-3.5 w-3.5 fill-gold text-gold"
-            />
-          ))}
+        {/* Rating */}
+        <div className="mt-1 flex items-center gap-1">
+          <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Star
+                key={i}
+                className="h-3 w-3 fill-gold text-gold"
+              />
+            ))}
+          </div>
 
-          <span className="ml-1 text-xs text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground">
             4.8
           </span>
         </div>
 
-        <div className="mt-3 text-lg font-semibold text-emerald">
+        {/* Price */}
+        <div className="mt-1.5 text-sm font-semibold text-emerald">
           {priceLabel}
         </div>
-
-        <div className="mt-4 text-sm font-medium text-emerald group-hover:underline">
-          View Details →
-        </div>
-
       </div>
     </Link>
   );
