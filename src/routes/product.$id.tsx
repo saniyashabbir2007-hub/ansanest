@@ -109,7 +109,8 @@ const media = [
 
       <div className="mt-8 grid gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
-          <div className="overflow-hidden rounded-2xl bg-muted">
+
+          <div className="overflow-hidden rounded-[32px] border border-border bg-muted shadow-xl">
   {media[active]?.includes("/videos/") ||
   media[active]?.match(/\.(mp4|webm|mov)$/i) ? (
     <video
@@ -128,25 +129,30 @@ const media = [
     />
   )}
 </div>
+
 {media.length > 1 && (
-            <div className="mt-4 grid grid-cols-4 gap-3">
+  <div className="mt-6 flex flex-wrap gap-3">
               {media.map((g: string, i: number) => (
                 <button
                   key={i}
                   onClick={() => setActive(i)}
-                  className={`overflow-hidden rounded-lg border-2 transition-colors ${active === i ? "border-emerald" : "border-transparent"}`}
+                  className={`overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+  active === i
+    ? "border-emerald shadow-lg scale-105"
+    : "border-transparent hover:border-emerald/40 hover:scale-105"
+}`}
                 >
 {g.includes("/videos/") ||
 g.match(/\.(mp4|webm|mov)$/i) ? (
   <video
     src={g}
-    className="aspect-square w-full object-cover"
+    className="h-24 w-24 rounded-lg object-cover"
   />
 ) : (
   <img
     src={g}
     alt=""
-    className="aspect-square w-full object-cover"
+    className="h-24 w-24 rounded-lg object-cover"
     loading="lazy"
   />
 )}                </button>
@@ -158,7 +164,19 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
         <div>
           <div className="text-xs uppercase tracking-[0.25em] text-emerald">{p.sub_type ?? p.category}</div>
           <h1 className="mt-2 font-display text-4xl text-foreground md:text-5xl">{p.name}</h1>
-          
+          <div className="mt-4 flex flex-wrap gap-2">
+  <span className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-xs font-medium text-emerald">
+    Premium Upholstery
+  </span>
+
+  <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+    Hand Crafted
+  </span>
+
+  <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-foreground">
+    Made to Order
+  </span>
+</div>
           <div className="mt-3 flex items-center gap-3">
             <div className="flex">
               {[0, 1, 2, 3].map((i) => <Star key={i} className="h-4 w-4 fill-gold text-gold" />)}
@@ -166,6 +184,8 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
             </div>
             <span className="text-sm text-muted-foreground">4.0 · Customer Rated</span>
           </div>
+          <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
+
 
           {variants.length > 0 && (
   <div className="mt-4">
@@ -195,8 +215,39 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
   </div>
 )}
 
+<div className="mt-6 rounded-2xl border border-border bg-muted/30 p-5">
+  <h3 className="mb-4 font-semibold text-foreground">
+    Specifications
+  </h3>
 
-          <div className="mt-6 text-4xl font-semibold text-emerald">{priceLabel}</div>
+  <div className="grid grid-cols-2 gap-4 text-sm">
+
+    <div>
+      <div className="text-muted-foreground">Material</div>
+      <div className="font-medium">{p.material ?? "—"}</div>
+    </div>
+
+    <div>
+      <div className="text-muted-foreground">Dimensions</div>
+      <div className="font-medium">{p.dimensions ?? "—"}</div>
+    </div>
+
+    <div>
+      <div className="text-muted-foreground">Availability</div>
+      <div className="font-medium">{p.availability}</div>
+    </div>
+
+    <div>
+      <div className="text-muted-foreground">Delivery</div>
+      <div className="font-medium">
+        {p.delivery_time ?? "Made to Order"}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
           <div className="mt-1 text-sm text-muted-foreground">Inclusive of all taxes · Free delivery in Mumbai MMR</div>
            
 
@@ -216,12 +267,54 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
               <FileText className="h-4 w-4" /> Request a Quote
             </Link>
           </div>
-          <p className="mt-4 leading-relaxed text-foreground/80">{p.description}</p>
+          <div className="mt-8 rounded-2xl border border-border bg-muted/20 p-5">
+  <div className="grid gap-4 sm:grid-cols-2">
+
+    <div className="flex items-center gap-3">
+      <Check className="h-5 w-5 text-emerald" />
+      <span className="text-sm font-medium">
+        Premium Craftsmanship
+      </span>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <Check className="h-5 w-5 text-emerald" />
+      <span className="text-sm font-medium">
+        Made to Order
+      </span>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <Check className="h-5 w-5 text-emerald" />
+      <span className="text-sm font-medium">
+        Pan India Delivery
+      </span>
+    </div>
+
+    <div className="flex items-center gap-3">
+      <Check className="h-5 w-5 text-emerald" />
+      <span className="text-sm font-medium">
+        Dedicated Customer Support
+      </span>
+    </div>
+
+  </div>
+</div>
+          <div className="mt-8">
+  <h2 className="font-display text-2xl text-foreground">
+    About this Product
+  </h2>
+
+  <p className="mt-4 leading-relaxed text-foreground/80">
+    {p.description}
+  </p>
+</div>
 
           <div className="mt-10 space-y-6">
             {p.features.length > 0 && (
-              <Block title="Features">
-                <ul className="grid gap-2 sm:grid-cols-2">
+              
+              <Block title="Why You'll Love It">
+                <ul className="grid gap-4 sm:grid-cols-2">
                   {p.features.map((f: string) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-foreground/80">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald" /> {f}
@@ -231,27 +324,57 @@ g.match(/\.(mp4|webm|mov)$/i) ? (
               </Block>
             )}
             {p.colors && p.colors.length > 0 && (
-  <Block title="Available Colors">
-    <div className="flex flex-wrap gap-2">
-      {p.colors.map((color: string) => (
-        <span
-          key={color}
-className="rounded-full bg-emerald/10 text-emerald px-4 py-1.5 text-sm font-medium"        >
+  <Block title="Available Fabric & Color Options">
+  <div className="flex flex-wrap gap-3">
+    {p.colors.map((color: string) => (
+      <div
+        key={color}
+        className="rounded-xl border border-border bg-card px-4 py-3 transition-all duration-300 hover:border-emerald hover:shadow-md"
+      >
+        <div className="text-sm font-medium text-foreground">
           {color}
-        </span>
-      ))}
-    </div>
-  </Block>
+        </div>
+
+        <div className="mt-1 text-xs text-muted-foreground">
+          Available for this design
+        </div>
+      </div>
+    ))}
+  </div>
+</Block>
 )}
             {p.material && <Block title="Material"><p className="text-sm text-foreground/80">{p.material}</p></Block>}
             {p.dimensions && <Block title="Dimensions"><p className="text-sm text-foreground/80">{p.dimensions}</p></Block>}
-            <Block title="Customization">
-  <ul className="space-y-2 text-sm text-foreground/80">
-    <li>✓ Custom Dimensions Available</li>
-    <li>✓ Custom Upholstery Available</li>
-    <li>✓ Fabric & Color Selection Available</li>
-    <li>✓ Made to Order</li>
-  </ul>
+            <Block title="Made Just for You">
+  <div className="rounded-2xl border border-border bg-muted/20 p-5">
+
+    <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+      Every ANSA NEST piece can be tailored to match your home and lifestyle.
+    </p>
+
+    <ul className="space-y-3 text-sm text-foreground/80">
+      <li className="flex items-center gap-3">
+        <Check className="h-4 w-4 text-emerald" />
+        Custom Dimensions
+      </li>
+
+      <li className="flex items-center gap-3">
+        <Check className="h-4 w-4 text-emerald" />
+        Fabric & Leather Options
+      </li>
+
+      <li className="flex items-center gap-3">
+        <Check className="h-4 w-4 text-emerald" />
+        Color Selection
+      </li>
+
+      <li className="flex items-center gap-3">
+        <Check className="h-4 w-4 text-emerald" />
+        Made to Order by Skilled Craftsmen
+      </li>
+    </ul>
+
+  </div>
 </Block>
             <Block title="Availability">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald/10 px-3 py-1 text-sm font-medium text-emerald">

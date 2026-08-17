@@ -9,6 +9,10 @@ import { listProducts, type Product } from "@/lib/products-api";
 import { ProductCard } from "@/components/site/ProductCard";
 import { BUSINESS } from "@/lib/business";
 import { TestimonialsSection } from "@/components/site/TestimonialsSection";
+import { TrustBar } from "@/components/site/Home/TrustBar";
+import { CarouselSection } from "@/components/site/Home/CarouselSection";
+import FeaturedCollections from "@/components/site/FeaturedCollections";
+import WhyChooseUs from "@/components/site/WhyChooseUs";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,25 +31,48 @@ function Index() {
   const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
   const featured = products.filter((p) => p.featured);
+  // Temporary homepage sections
+const recommendedProducts = featured.slice(0, 8);
+const bestSellerProducts = featured.slice(0, 8);
+const newArrivalProducts = products
+  .filter((p) => !p.featured)
+  .slice(0, 8);
   const sofas = products.filter((p) => p.category === "Sofa" || p.category === "Sectional Sofa").slice(0, 3);
   const sectionals = products.filter((p) => p.category === "Sectional Sofa").slice(0, 3);
   const beds = products.filter((p) => p.category === "Upholstered Bed");
 
   return (
+    
     <div>
       {/* HERO */}
-      <section className="relative isolate overflow-hidden">
-        <div className="container-px mx-auto grid max-w-7xl items-center gap-12 py-16 md:grid-cols-[1.05fr_1fr] md:py-24">
+      <CarouselSection
+  eyebrow="Recommended"
+  title="Curated for your home"
+  items={recommendedProducts}
+/>
+
+<CarouselSection
+  eyebrow="Best Sellers"
+  title="Most loved by our customers"
+  items={bestSellerProducts}
+  muted
+/>
+<FeaturedCollections />
+<WhyChooseUs />
+
+      <section className="relative isolate overflow-hidden min-h-[65vh]">
+        <div className="container-px mx-auto grid max-w-7xl items-center gap-10 py-10 md:grid-cols-[1.05fr_1fr] md:py-14">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-emerald">
-              <Sparkles className="h-3 w-3" /> Premium Upholstery · Crafted in India
+              <Sparkles className="h-3 w-3" />   WELCOME TO ANSA NEST
+
             </div>
-            <h1 className="mt-6 font-display text-5xl leading-[1.05] text-balance text-foreground md:text-7xl">
-              The art of <em className="italic text-emerald">upholstered</em> living.
+            <h1 className="mt-6 font-display text-3xl leading-tight text-balance text-foreground sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+Timeless <em className="italic text-emerald">Furniture</em>
+for modern living.
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Hand-crafted sofas, sectional sofas, upholstered beds and bespoke
-              custom upholstery — designed in India, built to be lived on for a lifetime.
+            <p className="mt-6 max-w-xl text-sm sm:text-base md:text-lg leading-relaxed text-muted-foreground">
+              Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed to bring timeless elegance and exceptional comfort into every home.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/catalog" className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3.5 text-sm font-medium text-background transition-opacity hover:opacity-90">
@@ -55,20 +82,24 @@ function Index() {
                 Book a Showroom Visit
               </Link>
             </div>
-            <div className="mt-12 grid max-w-md grid-cols-2 gap-6 border-t border-border pt-6">
-              {[["100%", "Hand-Crafted"], ["1000+", "Fabrics"]].map(([n, l]) => (
+            <div className="mt-8 grid max-w-md grid-cols-2 gap-4 border-t border-border pt-6">
+              {[["100%", "Hand-Crafted"], ["Made", "To Order"]].map(([n, l]) => (
                 <div key={l}>
-                  <div className="font-display text-3xl text-emerald">{n}</div>
+                  <div className="font-display text-2xl text-emerald">{n}</div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground">{l}</div>
                 </div>
               ))}
             </div>
           </div>
           <div className="relative">
-            <img src={hero} alt="Luxury emerald velvet sectional sofa in a premium living room" width={1792} height={1152} className="aspect-[4/5] w-full rounded-2xl object-cover shadow-luxury" />
+            <img src={hero} alt="Luxury emerald velvet sectional sofa in a premium living room" width={1792} height={1152} className="mx-auto aspect-[4/5] w-[90%] max-w-[520px] rounded-3xl object-cover shadow-2xl transition-transform duration-500 hover:scale-[1.02]" />
           </div>
         </div>
       </section>
+      <TrustBar />
+
+      
+      
 
       {/* COLLECTIONS STRIP */}
       <section className="container-px mx-auto max-w-7xl py-16">
@@ -195,16 +226,5 @@ function SectionHead({ eyebrow, title, inline }: { eyebrow: string; title: strin
   );
 }
 
-function CarouselSection({ eyebrow, title, items, muted }: { eyebrow: string; title: string; items: Product[]; muted?: boolean }) {
-  if (items.length === 0) return null;
-  return (
-    <section className={muted ? "bg-muted/40 py-16" : "py-16"}>
-      <div className="container-px mx-auto max-w-7xl">
-        <SectionHead eyebrow={eyebrow} title={title} />
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((p) => <ProductCard key={p.id} p={p} />)}
-        </div>
-      </div>
-    </section>
-  );
-}
+
+
