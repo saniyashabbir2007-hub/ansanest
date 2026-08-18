@@ -119,14 +119,15 @@ const media = [
   autoPlay
   muted
   playsInline
-  className="aspect-[4/3] w-full object-cover"
+  className="aspect-[4/3] w-full object-contain bg-black"
 />
   ) : (
+    
     <img
-      src={media[active]}
-      alt={p.name}
-      className="aspect-[4/3] w-full object-cover"
-    />
+  src={media[active]}
+  alt={p.name}
+  className="aspect-[4/3] w-full object-contain bg-white"
+/>
   )}
 </div>
 

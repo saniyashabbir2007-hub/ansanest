@@ -12,84 +12,283 @@ export function ProductCard({ p }: { p: Product }) {
       : "—";
 
   return (
-<article className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-500 hover:-translate-y-2 hover:border-emerald/40 hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
-        <Link
+    <article
+      className="
+        group
+        overflow-hidden
+        rounded-xl
+        border
+        border-border
+        bg-card
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:border-emerald/40
+        hover:shadow-lg
+
+        sm:rounded-2xl
+        sm:hover:-translate-y-2
+        sm:hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)]
+      "
+    >
+      {/* =========================================================
+          PRODUCT IMAGE
+      ========================================================= */}
+
+      <Link
         to="/product/$id"
         params={{ id: p.slug }}
         className="block overflow-hidden"
       >
-<div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-muted">
+        <div
+          className="
+            relative
+            aspect-[16/9]
+            overflow-hidden
+            bg-muted
+
+            sm:aspect-[4/3]
+            sm:rounded-t-2xl
+          "
+        >
           {p.image_url && (
             <img
               src={p.image_url}
               alt={p.name}
               loading="lazy"
-className="h-full w-full object-cover transition-all duration-700 group-hover:scale-110"
+              className="
+                h-full
+                w-full
+                object-cover
+                transition-transform
+                duration-500
+                group-hover:scale-105
+              "
             />
-            
           )}
-          <div className="absolute left-4 top-4 rounded-full bg-emerald px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white shadow-lg">
-  Premium
-</div>
+
+          {/* Premium Badge */}
+          <div
+            className="
+              absolute
+              left-2
+              top-2
+              rounded-full
+              bg-emerald
+              px-2
+              py-1
+              text-[8px]
+              font-semibold
+              uppercase
+              tracking-wider
+              text-white
+              shadow-md
+
+              sm:left-4
+              sm:top-4
+              sm:px-3
+              sm:text-[10px]
+            "
+          >
+            Premium
+          </div>
         </div>
       </Link>
 
-      <div className="p-5">
-        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+      {/* =========================================================
+          PRODUCT CONTENT
+      ========================================================= */}
+
+      <div
+        className="
+          p-2.5
+
+          sm:p-5
+        "
+      >
+        {/* Category / Sub-type */}
+        <div
+          className="
+            truncate
+            text-[8px]
+            uppercase
+            tracking-[0.16em]
+            text-muted-foreground
+
+            sm:text-[11px]
+            sm:tracking-[0.2em]
+          "
+        >
           {p.sub_type ?? p.category}
         </div>
 
-<h3 className="mt-2 line-clamp-2 font-display text-lg md:text-xl font-semibold text-foreground">
-            {p.name}
+        {/* Product Name */}
+        <h3
+          className="
+            mt-1
+            line-clamp-1
+            font-display
+            text-sm
+            font-semibold
+            leading-tight
+            text-foreground
+
+            sm:mt-2
+            sm:line-clamp-2
+            sm:text-lg
+            md:text-xl
+          "
+        >
+          {p.name}
         </h3>
 
-        <div className="mt-1 flex items-center gap-2">
+        {/* Rating */}
+        <div className="mt-1 flex items-center gap-1 sm:mt-1 sm:gap-2">
           <div className="flex">
             {[0, 1, 2, 3].map((i) => (
               <Star
                 key={i}
-                className="h-3.5 w-3.5 fill-gold text-gold"
+                className="
+                  h-3
+                  w-3
+                  fill-gold
+                  text-gold
+
+                  sm:h-3.5
+                  sm:w-3.5
+                "
               />
             ))}
-            <Star className="h-3.5 w-3.5 text-gold/40" />
+
+            <Star
+              className="
+                h-3
+                w-3
+                text-gold/40
+
+                sm:h-3.5
+                sm:w-3.5
+              "
+            />
           </div>
-          <span className="text-xs text-muted-foreground">4.0</span>
+
+          <span className="text-[9px] text-muted-foreground sm:text-xs">
+            4.0
+          </span>
         </div>
 
-        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+        {/* =======================================================
+            DESKTOP DETAILS
+            Hidden on mobile to keep catalog compact.
+        ======================================================= */}
+
+        <p
+          className="
+            mt-3
+            hidden
+            line-clamp-2
+            text-sm
+            text-muted-foreground
+
+            sm:block
+          "
+        >
           {p.short_description}
         </p>
 
-        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+        <div
+          className="
+            mt-3
+            hidden
+            space-y-1
+            text-xs
+            text-muted-foreground
 
-  {p.material && (
-    <div>
-      🌳 <span className="font-medium">Material:</span> {p.material}
-    </div>
-  )}
+            sm:block
+          "
+        >
+          {p.material && (
+            <div>
+              🌳{" "}
+              <span className="font-medium">
+                Material:
+              </span>{" "}
+              {p.material}
+            </div>
+          )}
 
-  {p.dimensions && (
-    <div>
-      📐 <span className="font-medium">Size:</span> {p.dimensions}
-    </div>
-  )}
+          {p.dimensions && (
+            <div>
+              📐{" "}
+              <span className="font-medium">
+                Size:
+              </span>{" "}
+              {p.dimensions}
+            </div>
+          )}
 
-  {p.delivery_time && (
-    <div>
-      🚚 <span className="font-medium">Delivery:</span> {p.delivery_time}
-    </div>
-  )}
-
-</div>
-<div className="mt-5 text-2xl font-bold tracking-tight text-emerald">
-              {priceLabel}
+          {p.delivery_time && (
+            <div>
+              🚚{" "}
+              <span className="font-medium">
+                Delivery:
+              </span>{" "}
+              {p.delivery_time}
+            </div>
+          )}
         </div>
 
-        <div className="mt-5 flex gap-2">
+        {/* Price */}
+        <div
+          className="
+            mt-1.5
+            text-base
+            font-bold
+            tracking-tight
+            text-emerald
+
+            sm:mt-5
+            sm:text-2xl
+          "
+        >
+          {priceLabel}
+        </div>
+
+        {/* =======================================================
+            ACTIONS
+        ======================================================= */}
+
+        <div
+          className="
+            mt-2
+            flex
+            gap-1.5
+
+            sm:mt-5
+            sm:gap-2
+          "
+        >
           <Link
             to="/product/$id"
             params={{ id: p.slug }}
-            className="flex-1 rounded-xl bg-foreground px-3 py-2.5 text-center text-xs font-medium text-background transition-opacity hover:opacity-90"
+            className="
+              flex-1
+              rounded-lg
+              bg-foreground
+              px-2
+              py-2
+              text-center
+              text-[10px]
+              font-medium
+              text-background
+              transition-opacity
+              hover:opacity-90
+
+              sm:rounded-xl
+              sm:px-3
+              sm:py-2.5
+              sm:text-xs
+            "
           >
             View Details
           </Link>
@@ -98,10 +297,29 @@ className="h-full w-full object-cover transition-all duration-700 group-hover:sc
             href={waLink(productInquiry(p.name))}
             target="_blank"
             rel="noreferrer noopener"
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] px-3 py-2.5 text-xs font-medium text-white hover:opacity-90"
+            className="
+              flex
+              items-center
+              justify-center
+              gap-1
+              rounded-lg
+              bg-[#25D366]
+              px-2
+              py-2
+              text-[10px]
+              font-medium
+              text-white
+              hover:opacity-90
+
+              sm:rounded-xl
+              sm:gap-1.5
+              sm:px-3
+              sm:py-2.5
+              sm:text-xs
+            "
             aria-label={`WhatsApp enquiry about ${p.name}`}
           >
-            <WhatsAppIcon className="h-3.5 w-3.5" />
+            <WhatsAppIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             Enquire
           </a>
         </div>
