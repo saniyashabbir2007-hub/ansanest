@@ -57,10 +57,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data: products = [] } = useQuery({
-    queryKey: ["products"],
-    queryFn: listProducts,
-  });
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+  queryKey: ["products"],
+  queryFn: listProducts,
+});
 
   /*
    * ============================================================
@@ -224,8 +224,10 @@ const customCollectionImages = products
           HERO
       ====================================================== */}
 
-      <DynamicHero products={featured} />
-
+<DynamicHero
+  products={featured}
+  isLoading={productsLoading}
+/>
       {/* ======================================================
           RECOMMENDED PRODUCTS
       ====================================================== */}
@@ -286,13 +288,15 @@ const customCollectionImages = products
                     />
                   )
                 )
-              ) : (
-                <img
-                  src={sectional}
-                  alt="Sofas & Sectionals"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
+              ) : productsLoading ? (
+  <div className="absolute inset-0 animate-pulse bg-muted" />
+) : (
+  <img
+    src={sectional}
+    alt="Sofas & Sectionals"
+    className="absolute inset-0 h-full w-full object-cover"
+  />
+)}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -341,14 +345,15 @@ const customCollectionImages = products
                     />
                   )
                 )
-              ) : (
-                <img
-                  src={bed}
-                  alt="Upholstered Beds"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
-
+              ) : productsLoading ? (
+  <div className="absolute inset-0 animate-pulse bg-muted" />
+) : (
+  <img
+    src={bed}
+    alt="Upholstered Beds"
+    className="absolute inset-0 h-full w-full object-cover"
+  />
+)}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -396,13 +401,15 @@ const customCollectionImages = products
                     />
                   )
                 )
-              ) : (
-                <img
-                  src={custom}
-                  alt="Custom Upholstery"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
+              ) : productsLoading ? (
+  <div className="absolute inset-0 animate-pulse bg-muted" />
+) : (
+  <img
+    src={custom}
+    alt="Custom Upholstery"
+    className="absolute inset-0 h-full w-full object-cover"
+  />
+)}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -517,14 +524,16 @@ const customCollectionImages = products
 
 function DynamicHero({
   products,
+  isLoading,
 }: {
   products: {
     id: string;
     name: string;
     image_url: string;
   }[];
+  isLoading: boolean;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+    const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (products.length <= 1) {
@@ -601,19 +610,25 @@ function DynamicHero({
 
           <div className="relative mx-auto aspect-[16/10] w-full max-w-[560px] overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl md:aspect-[4/3]">
 
-            {/* FALLBACK */}
+           {/* FALLBACK / LOADING */}
 
-            <img
-              src={hero}
-              alt="ANSA NEST premium furniture"
-              width={1792}
-              height={1152}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-                activeProduct
-                  ? "opacity-0"
-                  : "opacity-100"
-              }`}
-            />
+{!isLoading && (
+  <img
+    src={hero}
+    alt="ANSA NEST premium furniture"
+    width={1792}
+    height={1152}
+    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+      activeProduct
+        ? "opacity-0"
+        : "opacity-100"
+    }`}
+  />
+)}
+
+{isLoading && (
+  <div className="absolute inset-0 animate-pulse bg-muted" />
+)}
 
             {/* CATALOG IMAGE */}
 
