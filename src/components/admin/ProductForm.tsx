@@ -2,14 +2,27 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   listCategories,
+  listProducts,
   uploadProductImage,
   uploadProductVideo,
   slugify,
+  mergeProductAsVariant,
   type Product,
   type ProductInput,
   type DimensionVariant,
+  type VariantColor,
 } from "@/lib/products-api";
-import { Upload, X, Star, Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  Upload,
+  X,
+  Star,
+  Loader2,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  ArrowRightLeft,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export type ProductFormValues = ProductInput;
@@ -53,6 +66,8 @@ export function ProductForm({
   submitting?: boolean;
 }) {
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
+  const allProductsQuery = useQuery({ queryKey: ["products"], queryFn: listProducts });
+
   const [v, setV] = useState<ProductFormValues>(() =>
     initial
       ? {
@@ -84,6 +99,7 @@ export function ProductForm({
       : empty,
   );
 
+  const [expandedVariants, setExpandedVariants] = useState<{ [key: string]: boolean }>({});
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingVideos, setUploadingVideos] = useState(false);
@@ -91,9 +107,19 @@ export function ProductForm({
     (initial?.features ?? []).join("\n"),
   );
 
+  // Merge state
+  const [targetParentId, setTargetParentId] = useState("");
+  const [targetVariantName, setTargetVariantName] = useState(initial?.name || "");
+  const [deleteSourceProduct, setDeleteSourceProduct] = useState(true);
+  const [merging, setMerging] = useState(false);
+
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
   }
+
+  const toggleExpand = (id: string) => {
+    setExpandedVariants((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   async function handleMainUpload(file: File) {
     setUploadingMain(true);
@@ -144,17 +170,22 @@ export function ProductForm({
     }
   }
 
+  // Dimension Variant Handlers
   function addDimensionVariant() {
+    const id = `var-${Date.now()}`;
     const newVariant: DimensionVariant = {
-      id: `var-${Date.now()}`,
+      id,
       name: "",
       dimensions: "",
       seats: "",
       price: v.price || 0,
       stock: 10,
       is_default: (v.dimension_variants ?? []).length === 0,
+      images: [],
+      colors: [],
     };
     set("dimension_variants", [...(v.dimension_variants ?? []), newVariant]);
+    setExpandedVariants((prev) => ({ ...prev, [id]: true }));
   }
 
   function updateDimensionVariant(index: number, patch: Partial<DimensionVariant>) {
@@ -176,6 +207,51 @@ export function ProductForm({
       list[0].is_default = true;
     }
     set("dimension_variants", list);
+  }
+
+  // Nested Variant Color Handlers
+  function addColorToVariant(varIdx: number) {
+    const list = [...(v.dimension_variants ?? [])];
+    const currentColors = list[varIdx].colors ?? [];
+    list[varIdx].colors = [...currentColors, { name: "", images: [] }];
+    set("dimension_variants", list);
+  }
+
+  function updateColorInVariant(varIdx: number, colorIdx: number, patch: Partial<VariantColor>) {
+    const list = [...(v.dimension_variants ?? [])];
+    const colors = [...(list[varIdx].colors ?? [])];
+    colors[colorIdx] = { ...colors[colorIdx], ...patch };
+    list[varIdx].colors = colors;
+    set("dimension_variants", list);
+  }
+
+  function removeColorFromVariant(varIdx: number, colorIdx: number) {
+    const list = [...(v.dimension_variants ?? [])];
+    list[varIdx].colors = (list[varIdx].colors ?? []).filter((_, i) => i !== colorIdx);
+    set("dimension_variants", list);
+  }
+
+  // Merge Action Handler
+  async function handleMergeProduct() {
+    if (!initial?.id) return;
+    if (!targetParentId) {
+      return toast.error("Please select a parent product to merge into.");
+    }
+
+    setMerging(true);
+    try {
+      await mergeProductAsVariant(
+        initial.id,
+        targetParentId,
+        targetVariantName || v.name,
+        deleteSourceProduct
+      );
+      toast.success("Successfully converted and moved as a variant!");
+      window.location.href = `/admin/products/${targetParentId}`;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to merge product.");
+      setMerging(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -207,6 +283,10 @@ export function ProductForm({
       features,
     });
   }
+
+  const otherProducts = (allProductsQuery.data ?? []).filter(
+    (p) => p.id !== initial?.id
+  );
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -281,100 +361,292 @@ export function ProductForm({
           )}
         </Card>
 
-        {/* VARIANTS / DIMENSIONS TABLE */}
-        <Card title="Variants / Dimensions">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border text-muted-foreground">
-                <tr>
-                  <th className="pb-2 font-medium">Variant Name</th>
-                  <th className="pb-2 font-medium">Dimensions (in Inches)</th>
-                  <th className="pb-2 font-medium">Seats</th>
-                  <th className="pb-2 font-medium">Price (₹)</th>
-                  <th className="pb-2 font-medium">Stock</th>
-                  <th className="pb-2 text-center font-medium">Default</th>
-                  <th className="pb-2 text-center font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(v.dimension_variants ?? []).map((variant, index) => (
-                  <tr key={variant.id || index} className="align-middle">
-                    <td className="py-2 pr-2">
+        {/* NESTED VARIANTS / DIMENSIONS MANAGER */}
+        <Card title="Variants / Dimensions & Variations">
+          <p className="text-xs text-muted-foreground mb-3">
+            Add size variations with custom dimensions, prices, images, and color sub-options.
+          </p>
+
+          <div className="space-y-4">
+            {(v.dimension_variants ?? []).map((variant, index) => {
+              const isExpanded = expandedVariants[variant.id || String(index)] ?? true;
+
+              return (
+                <div
+                  key={variant.id || index}
+                  className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-sm"
+                >
+                  {/* Variant Top Meta Fields */}
+                  <div className="grid gap-3 sm:grid-cols-[1.2fr_1.5fr_1fr_1fr_auto_auto] sm:items-end">
+                    <Field label="Variant Name">
                       <input
                         value={variant.name}
                         onChange={(e) => updateDimensionVariant(index, { name: e.target.value })}
-                        placeholder="e.g. 1 Seater"
-                        className={`${inputCls} py-1 text-xs`}
+                        placeholder="e.g. 2 Seater"
+                        className={inputCls}
                       />
-                    </td>
-                    <td className="py-2 pr-2">
+                    </Field>
+                    <Field label="Dimensions (in Inches)">
                       <input
                         value={variant.dimensions}
                         onChange={(e) => updateDimensionVariant(index, { dimensions: e.target.value })}
-                        placeholder='38" W x 38" D x 30" H'
-                        className={`${inputCls} py-1 text-xs`}
+                        placeholder='62" W x 38" D x 30" H'
+                        className={inputCls}
                       />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        value={variant.seats ?? ""}
-                        onChange={(e) => updateDimensionVariant(index, { seats: e.target.value })}
-                        placeholder="1 Seater"
-                        className={`${inputCls} py-1 text-xs w-20`}
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
+                    </Field>
+                    <Field label="Price (₹)">
                       <input
                         type="number"
                         value={variant.price || ""}
                         onChange={(e) => updateDimensionVariant(index, { price: Number(e.target.value) })}
-                        placeholder="24999"
-                        className={`${inputCls} py-1 text-xs w-24`}
+                        placeholder="34999"
+                        className={inputCls}
                       />
-                    </td>
-                    <td className="py-2 pr-2">
+                    </Field>
+                    <Field label="Stock">
                       <input
                         type="number"
                         value={variant.stock ?? 10}
                         onChange={(e) => updateDimensionVariant(index, { stock: Number(e.target.value) })}
                         placeholder="10"
-                        className={`${inputCls} py-1 text-xs w-16`}
+                        className={inputCls}
                       />
-                    </td>
-                    <td className="py-2 text-center">
+                    </Field>
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-[10px] text-muted-foreground uppercase font-medium mb-1.5">Default</span>
                       <input
                         type="radio"
                         name="default_variant"
                         checked={variant.is_default || false}
                         onChange={() => updateDimensionVariant(index, { is_default: true })}
-                        className="cursor-pointer text-emerald focus:ring-emerald"
+                        className="h-4 w-4 cursor-pointer text-emerald focus:ring-emerald"
                       />
-                    </td>
-                    <td className="py-2 text-center">
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(variant.id || String(index))}
+                        className="rounded p-2 text-muted-foreground hover:bg-muted"
+                        title="Toggle Photos & Colors"
+                      >
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeDimensionVariant(index)}
-                        className="rounded p-1 text-muted-foreground hover:text-red-500 transition"
+                        className="rounded p-2 text-muted-foreground hover:text-red-500"
                         title="Remove Variant"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+
+                  {/* Expandable Images & Color Variations for this Specific Dimension */}
+                  {isExpanded && (
+                    <div className="mt-3 space-y-4 border-t border-border/70 pt-4 bg-muted/20 -mx-4 -mb-4 p-4 rounded-b-xl">
+                      {/* Variant Main Photos */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Images for {variant.name || "this variant"}
+                          </label>
+                        </div>
+
+                        <UploadBox
+                          uploading={false}
+                          multiple
+                          label={`Upload images for ${variant.name || "size"}`}
+                          onFiles={async (files) => {
+                            const uploaded: string[] = [];
+                            for (const file of Array.from(files)) {
+                              uploaded.push(await uploadProductImage(file));
+                            }
+                            updateDimensionVariant(index, {
+                              images: [...(variant.images ?? []), ...uploaded],
+                            });
+                          }}
+                        />
+
+                        {(variant.images ?? []).length > 0 && (
+                          <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2">
+                            {(variant.images ?? []).map((img, imgIdx) => (
+                              <div key={imgIdx} className="relative group">
+                                <img
+                                  src={img}
+                                  alt=""
+                                  className="aspect-square rounded-md object-cover w-full border"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = (variant.images ?? []).filter((_, i) => i !== imgIdx);
+                                    updateDimensionVariant(index, { images: imgs });
+                                  }}
+                                  className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5 opacity-80 group-hover:opacity-100"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Variant Colors Sub-Section */}
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Color Variations for {variant.name || "this variant"}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addColorToVariant(index)}
+                            className="text-xs text-emerald font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" /> Add Color Option
+                          </button>
+                        </div>
+
+                        {(variant.colors ?? []).map((col, cIdx) => (
+                          <div key={cIdx} className="rounded-lg border border-border/80 bg-background p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                placeholder="Color Name (e.g. Classic Red)"
+                                value={col.name}
+                                onChange={(e) => updateColorInVariant(index, cIdx, { name: e.target.value })}
+                                className={`${inputCls} text-xs py-1.5`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeColorFromVariant(index, cIdx)}
+                                className="p-1.5 text-muted-foreground hover:text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <UploadBox
+                              uploading={false}
+                              multiple
+                              label={`Upload photos for ${col.name || "this color"}`}
+                              onFiles={async (files) => {
+                                const uploaded: string[] = [];
+                                for (const file of Array.from(files)) {
+                                  uploaded.push(await uploadProductImage(file));
+                                }
+                                updateColorInVariant(index, cIdx, {
+                                  images: [...(col.images ?? []), ...uploaded],
+                                });
+                              }}
+                            />
+
+                            {(col.images ?? []).length > 0 && (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {(col.images ?? []).map((cImg, cImgIdx) => (
+                                  <div key={cImgIdx} className="relative group">
+                                    <img
+                                      src={cImg}
+                                      alt=""
+                                      className="aspect-square rounded-md object-cover w-full border"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const cImgs = (col.images ?? []).filter((_, i) => i !== cImgIdx);
+                                        updateColorInVariant(index, cIdx, { images: cImgs });
+                                      }}
+                                      className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <button
             type="button"
             onClick={addDimensionVariant}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-muted transition shadow-sm"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Variant
+            Add Variant / Dimension
           </button>
         </Card>
+
+        {/* MOVE / CONVERT PRODUCT INTO VARIANT TOOL */}
+        {initial?.id && otherProducts.length > 0 && (
+          <Card title="Move / Convert to Another Product Variant">
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                If this product was accidentally added separately, you can migrate its images, colors, dimensions, and pricing as a size variant under an existing parent product.
+              </p>
+
+              <Field label="Select Parent Product to Merge Into *">
+                <select
+                  value={targetParentId}
+                  onChange={(e) => setTargetParentId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">Select parent product…</option>
+                  {otherProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.category})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Variant Name inside Parent (e.g. 2 Seater)">
+                <input
+                  value={targetVariantName}
+                  onChange={(e) => setTargetVariantName(e.target.value)}
+                  placeholder={v.name}
+                  className={inputCls}
+                />
+              </Field>
+
+              <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteSourceProduct}
+                  onChange={(e) => setDeleteSourceProduct(e.target.checked)}
+                  className="rounded border-border text-emerald focus:ring-emerald"
+                />
+                <span className="text-xs text-foreground font-medium">
+                  Delete this standalone product after moving
+                </span>
+              </label>
+
+              <button
+                type="button"
+                disabled={merging || !targetParentId}
+                onClick={handleMergeProduct}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald/50 bg-emerald/10 px-4 py-2.5 text-xs font-semibold text-emerald hover:bg-emerald hover:text-white transition disabled:opacity-50"
+              >
+                {merging ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Merging…
+                  </>
+                ) : (
+                  <>
+                    <ArrowRightLeft className="h-3.5 w-3.5" /> Convert & Merge into Parent Product
+                  </>
+                )}
+              </button>
+            </div>
+          </Card>
+        )}
 
         <Card title="Descriptions">
           <Field label="Short description (shown on cards)">
@@ -440,7 +712,7 @@ export function ProductForm({
       </div>
 
       <div className="space-y-6">
-        <Card title="Main Images *">
+        <Card title="Main Product Image *">
           {v.image_url ? (
             <div className="relative">
               <img src={v.image_url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
@@ -461,7 +733,7 @@ export function ProductForm({
           )}
         </Card>
 
-        <Card title="Gallery Images">
+        <Card title="Overall Gallery Images">
           <div className="grid grid-cols-3 gap-2">
             {(v.gallery_urls ?? []).map((url, i) => (
               <div key={i} className="relative">
@@ -521,93 +793,6 @@ export function ProductForm({
               label="Add videos"
               accept="video/*"
             />
-          </div>
-        </Card>
-
-        <Card title="Color Variants">
-          <div className="space-y-4">
-            {((v.color_variants as any[]) || []).map((variant: any, index: number) => (
-              <div
-                key={index}
-                className="rounded-lg border p-4 space-y-3"
-              >
-                <input
-                  placeholder="Color Name"
-                  value={variant.name || ""}
-                  onChange={(e) => {
-                    const variants = [...((v.color_variants as any[]) || [])];
-                    variants[index].name = e.target.value;
-                    set("color_variants", variants);
-                  }}
-                  className={inputCls}
-                />
-
-                <UploadBox
-                  uploading={false}
-                  multiple
-                  label="Upload Variant Images"
-                  onFiles={async (files) => {
-                    const uploaded: string[] = [];
-                    for (const file of Array.from(files)) {
-                      uploaded.push(await uploadProductImage(file));
-                    }
-                    const variants = [...((v.color_variants as any[]) || [])];
-                    variants[index].images = [
-                      ...(variants[index].images || []),
-                      ...uploaded,
-                    ];
-                    set("color_variants", variants);
-                  }}
-                />
-
-                <div className="grid grid-cols-3 gap-3">
-                  {(variant.images || []).map((img: string, imgIndex: number) => (
-                    <div key={imgIndex} className="relative">
-                      <img
-                        src={img}
-                        className="aspect-square rounded-md object-cover"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-1 top-1 rounded-full bg-white p-1"
-                        onClick={() => {
-                          const variants = [...((v.color_variants as any[]) || [])];
-                          variants[index].images.splice(imgIndex, 1);
-                          set("color_variants", variants);
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const variants = [...((v.color_variants as any[]) || [])];
-                    variants.splice(index, 1);
-                    set("color_variants", variants);
-                  }}
-                  className="rounded border px-3 py-2 text-xs"
-                >
-                  Remove Color
-                </button>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={() =>
-                set("color_variants", [
-                  ...((v.color_variants as any[]) || []),
-                  { name: "", images: [] },
-                ])
-              }
-              className="rounded border px-4 py-2 text-xs font-medium"
-            >
-              Add Color Variant
-            </button>
           </div>
         </Card>
 
@@ -682,8 +867,8 @@ function UploadBox({
   accept?: string;
 }) {
   return (
-    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground hover:bg-muted">
-      {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-3 py-4 text-xs text-muted-foreground hover:bg-muted">
+      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
       <span>{uploading ? "Uploading…" : label}</span>
       <input
         type="file"

@@ -1,9 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type ProductColor = {
-  colorName: string;
-  colorCode: string;
-  imageUrl: string;
+export type VariantColor = {
+  name: string;
+  images: string[];
 };
 
 export type DimensionVariant = {
@@ -14,6 +13,14 @@ export type DimensionVariant = {
   price: number;
   stock?: number;
   is_default?: boolean;
+  images?: string[];
+  colors?: VariantColor[];
+};
+
+export type ProductColor = {
+  colorName: string;
+  colorCode: string;
+  imageUrl: string;
 };
 
 export type Product = {
@@ -68,22 +75,9 @@ export function slugify(text: string): string {
     .replace(/--+/g, "-");
 }
 
-export function normalizeProductColors(colors: any): ProductColor[] {
+export function normalizeProductColors(colors: any): any[] {
   if (!Array.isArray(colors)) return [];
-  return colors.map((c) => {
-    if (typeof c === "string") {
-      return {
-        colorName: c,
-        colorCode: c.startsWith("#") ? c : "#888888",
-        imageUrl: "",
-      };
-    }
-    return {
-      colorName: c?.colorName || "",
-      colorCode: c?.colorCode || "",
-      imageUrl: c?.imageUrl || "",
-    };
-  });
+  return colors;
 }
 
 // -------------------------------------------------------------
@@ -314,4 +308,66 @@ export async function deleteProductReview(id: string): Promise<void> {
     .eq("id", id);
 
   if (error) throw error;
+}
+
+// -------------------------------------------------------------
+// MERGE PRODUCT INTO VARIANT HELPER
+// -------------------------------------------------------------
+
+export async function mergeProductAsVariant(
+  sourceProductId: string,
+  targetProductId: string,
+  variantName?: string,
+  deleteSource: boolean = true
+): Promise<void> {
+  const [source, target] = await Promise.all([
+    getProductById(sourceProductId),
+    getProductById(targetProductId),
+  ]);
+
+  if (!source || !target) throw new Error("Source or target product not found.");
+
+  // Build images array
+  const sourceImages = [
+    source.image_url,
+    ...(source.gallery_urls ?? []),
+  ].filter(Boolean);
+
+  // Convert colors / color_variants if present
+  const sourceColors: VariantColor[] = Array.isArray(source.color_variants)
+    ? source.color_variants.map((c: any) => ({
+        name: c.name || "Default Color",
+        images: c.images || [],
+      }))
+    : [];
+
+  const newVariant: DimensionVariant = {
+    id: `var-${Date.now()}`,
+    name: variantName || source.name,
+    dimensions: source.dimensions || "",
+    seats: source.sub_type || "",
+    price: Number(source.price) || 0,
+    stock: 10,
+    is_default: (target.dimension_variants ?? []).length === 0,
+    images: sourceImages,
+    colors: sourceColors,
+  };
+
+  const updatedVariants = [...(target.dimension_variants ?? []), newVariant];
+
+  // Auto-calculate lowest price
+  const validPrices = updatedVariants
+    .map((v) => Number(v.price))
+    .filter((p) => !isNaN(p) && p > 0);
+  const lowestPrice =
+    validPrices.length > 0 ? Math.min(...validPrices) : target.price;
+
+  await updateProduct(targetProductId, {
+    dimension_variants: updatedVariants,
+    price: lowestPrice,
+  });
+
+  if (deleteSource) {
+    await deleteProduct(sourceProductId);
+  }
 }
