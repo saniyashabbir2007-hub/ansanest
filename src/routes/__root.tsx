@@ -11,6 +11,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { BUSINESS } from "@/lib/business";
+import appCss from "@/styles.css?url";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -31,6 +32,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
