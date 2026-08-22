@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCategories,
   listProducts,
@@ -68,6 +68,7 @@ export function ProductForm({
   submitLabel: string;
   submitting?: boolean;
 }) {
+  const qc = useQueryClient();
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
   const allProductsQuery = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
@@ -211,13 +212,11 @@ export function ProductForm({
     set("dimension_variants", list);
   }
 
-  // Promote a Variant to become the main Parent Product
   function promoteVariantToParent(index: number) {
     const list = [...(v.dimension_variants ?? [])];
     const selectedVariant = list[index];
     if (!selectedVariant) return;
 
-    // Create a new variant out of the current parent product data
     const oldParentAsVariant: DimensionVariant = {
       id: `var-old-parent-${Date.now()}`,
       name: v.name,
@@ -230,15 +229,13 @@ export function ProductForm({
       colors: (v.color_variants as any[]) || [],
     };
 
-    // Remove selected variant from array and add old parent
     const remainingVariants = list.filter((_, i) => i !== index);
     const updatedVariants = [
       { ...selectedVariant, is_default: true },
       oldParentAsVariant,
-      ...remainingVariants.filter((v) => v.id !== selectedVariant.id),
+      ...remainingVariants.filter((item) => item.id !== selectedVariant.id),
     ];
 
-    // Swap data into main parent product
     setV((prev) => ({
       ...prev,
       name: selectedVariant.name || prev.name,
@@ -249,7 +246,7 @@ export function ProductForm({
       dimension_variants: updatedVariants,
     }));
 
-    toast.success(`"${selectedVariant.name}" is now the main parent product! Click Save to confirm.`);
+    toast.success(`"${selectedVariant.name}" promoted to main product! Click save to apply.`);
   }
 
   function addColorToVariant(varIdx: number) {
@@ -280,6 +277,7 @@ export function ProductForm({
     setExtractingId(variantId);
     try {
       const created = await extractVariantToSeparateProduct(initial.id, variantId);
+      await qc.invalidateQueries({ queryKey: ["products"] });
       toast.success("Variant successfully extracted back to its own product!");
       window.location.href = `/admin/products/${created.id}`;
     } catch (err: any) {
@@ -302,6 +300,7 @@ export function ProductForm({
         targetVariantName || v.name,
         deleteSourceProduct
       );
+      await qc.invalidateQueries({ queryKey: ["products"] });
       toast.success("Successfully converted and moved as variant!");
       window.location.href = `/admin/products/${targetParentId}`;
     } catch (err: any) {
@@ -310,7 +309,7 @@ export function ProductForm({
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const features = featuresText
       .split("\n")
@@ -322,7 +321,6 @@ export function ProductForm({
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
 
-    // Always ensure the parent product price matches the lowest variant price
     let basePrice = v.price;
     if (v.dimension_variants && v.dimension_variants.length > 0) {
       const validPrices = v.dimension_variants
@@ -333,12 +331,16 @@ export function ProductForm({
       }
     }
 
-    onSubmit({
+    await onSubmit({
       ...v,
       price: basePrice,
       slug,
       features,
     });
+
+    // Invalidate product caches across the application
+    await qc.invalidateQueries({ queryKey: ["products"] });
+    await qc.refetchQueries({ queryKey: ["products"] });
   }
 
   const otherProducts = (allProductsQuery.data ?? []).filter(
@@ -418,7 +420,7 @@ export function ProductForm({
           )}
         </Card>
 
-        {/* NESTED VARIANTS / DIMENSIONS MANAGER */}
+        {/* VARIANTS / DIMENSIONS MANAGER */}
         <Card title="Variants / Dimensions & Variations">
           <p className="text-xs text-muted-foreground mb-3">
             Manage sizes, dimensions, custom prices, images, and color sub-variants.
@@ -479,7 +481,6 @@ export function ProductForm({
                       />
                     </div>
                     <div className="flex items-center gap-1">
-                      {/* Make this variant the parent product */}
                       <button
                         type="button"
                         onClick={() => promoteVariantToParent(index)}
@@ -663,7 +664,7 @@ export function ProductForm({
           </button>
         </Card>
 
-        {/* MOVE / CONVERT PRODUCT INTO VARIANT TOOL */}
+        {/* MOVE / CONVERT PRODUCT INTO VARIANT */}
         {initial?.id && otherProducts.length > 0 && (
           <Card title="Move / Convert to Another Product Variant">
             <div className="space-y-3">

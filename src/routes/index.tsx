@@ -52,8 +52,9 @@ function Index() {
     queryKey: ["products"],
     queryFn: listProducts,
     initialData: loaderData?.products,
-    staleTime: 1000 * 60 * 15,
-    gcTime: 1000 * 60 * 60,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const isInitialLoading = products.length === 0;
