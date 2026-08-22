@@ -4,8 +4,9 @@ import {
   ScrollRestoration,
   HeadContent,
   Scripts,
+  useRouteContext,
 } from "@tanstack/react-router";
-import type { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,6 +15,8 @@ import { BUSINESS } from "@/lib/business";
 export interface RouterContext {
   queryClient: QueryClient;
 }
+
+const fallbackQueryClient = new QueryClient();
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
@@ -41,21 +44,26 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootComponent() {
+  const context = useRouteContext({ from: "__root__" });
+  const client = context?.queryClient ?? fallbackQueryClient;
+
   return (
-    <html lang="en" className="h-full scroll-smooth">
-      <head>
-        <HeadContent />
-      </head>
-      <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased selection:bg-emerald selection:text-white">
-        <Header />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        <Footer />
-        <Toaster position="bottom-right" richColors />
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+    <QueryClientProvider client={client}>
+      <html lang="en" className="h-full scroll-smooth">
+        <head>
+          <HeadContent />
+        </head>
+        <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased selection:bg-emerald selection:text-white">
+          <Header />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <Footer />
+          <Toaster position="bottom-right" richColors />
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </html>
+    </QueryClientProvider>
   );
 }
