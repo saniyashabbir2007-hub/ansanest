@@ -1,5 +1,39 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type ProductColor = {
+  colorName: string;
+  colorCode: string;
+  imageUrl: string;
+};
+
+export function normalizeProductColors(raw: unknown): ProductColor[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item === "string") {
+        const colorName = item.trim();
+        return colorName
+          ? { colorName, colorCode: "", imageUrl: "" }
+          : null;
+      }
+      if (item && typeof item === "object") {
+        const o = item as Record<string, unknown>;
+        const colorName = String(o.colorName ?? o.name ?? "").trim();
+        const colorCode = String(o.colorCode ?? o.hex ?? "").trim();
+        const imageUrl = String(o.imageUrl ?? o.image_url ?? "").trim();
+        if (!colorName && !colorCode && !imageUrl) return null;
+        return { colorName, colorCode, imageUrl };
+      }
+      return null;
+    })
+    .filter((c): c is ProductColor => c != null);
+}
+
+function normalizeProduct(row: Product | null): Product | null {
+  if (!row) return null;
+  return { ...row, colors: normalizeProductColors(row.colors) };
+}
+
 export type Product = {
   id: string;
   slug: string;
@@ -14,18 +48,18 @@ export type Product = {
   short_description: string;
   description: string;
   features: string[];
-  colors: string[];
+  colors: ProductColor[];
   color_variants?: {
-  name: string;
-  images: string[];
-}[];
+    name: string;
+    images: string[];
+  }[];
   material: string;
   dimensions: string;
   availability: string;
   delivery_time: string | null;
-customizable: boolean;
-warranty: string | null;
-care_instructions: string | null;
+  customizable: boolean;
+  warranty: string | null;
+  care_instructions: string | null;
   featured: boolean;
   sort_order: number;
   created_at: string;
@@ -46,7 +80,7 @@ export async function listProducts(): Promise<Product[]> {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Product[];
+  return ((data ?? []) as Product[]).map((p) => normalizeProduct(p)!);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -56,7 +90,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
-  return (data as Product) ?? null;
+  return normalizeProduct((data as Product) ?? null);
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -66,7 +100,7 @@ export async function getProductById(id: string): Promise<Product | null> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return (data as Product) ?? null;
+  return normalizeProduct((data as Product) ?? null);
 }
 
 export async function listCategories(): Promise<Category[]> {
@@ -99,7 +133,7 @@ export type ProductInput = Omit<Product, "id" | "created_at" | "updated_at">;
 export async function createProduct(input: ProductInput) {
   const { data, error } = await supabase.from("products").insert(input as any).select().single();
   if (error) throw error;
-  return data as Product;
+  return normalizeProduct(data as Product)!;
 }
 
 export async function updateProduct(id: string, patch: Partial<ProductInput>) {

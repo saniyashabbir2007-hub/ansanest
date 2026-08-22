@@ -5,7 +5,9 @@ import {
   uploadProductImage,
   uploadProductVideo,
   slugify,
+  normalizeProductColors,
   type Product,
+  type ProductColor,
   type ProductInput,
 } from "@/lib/products-api";
 import { Upload, X, Star, Loader2 } from "lucide-react";
@@ -31,6 +33,10 @@ const empty: ProductFormValues = {
   material: "",
   dimensions: "",
   availability: "Made to Order",
+  delivery_time: null,
+  customizable: false,
+  warranty: null,
+  care_instructions: null,
   featured: false,
   sort_order: 0,
 };
@@ -62,11 +68,15 @@ export function ProductForm({
           short_description: initial.short_description,
           description: initial.description,
           features: initial.features ?? [],
-          colors: initial.colors ?? [],
+          colors: normalizeProductColors(initial.colors),
           color_variants: (initial as any).color_variants ?? [],
           material: initial.material,
           dimensions: initial.dimensions,
           availability: initial.availability,
+          delivery_time: initial.delivery_time ?? null,
+          customizable: initial.customizable ?? false,
+          warranty: initial.warranty ?? null,
+          care_instructions: initial.care_instructions ?? null,
           featured: initial.featured,
           sort_order: initial.sort_order,
         }
@@ -78,11 +88,7 @@ export function ProductForm({
   const [featuresText, setFeaturesText] = useState(
     (initial?.features ?? []).join("\n"),
   );
-  const [colorsText, setColorsText] = useState(
-  (initial?.colors ?? []).join("\n"),
-);
-console.log("INITIAL COLORS:", initial?.colors);
-console.log("COLORS TEXT:", colorsText);
+  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null);
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
@@ -143,28 +149,36 @@ console.log("COLORS TEXT:", colorsText);
   }
 }
 
+  function updateColor(index: number, patch: Partial<ProductColor>) {
+    setV((s) => {
+      const colors = [...(s.colors ?? [])];
+      colors[index] = { ...colors[index], ...patch };
+      return { ...s, colors };
+    });
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const features = featuresText
-  .split("\n")
-  .map((s) => s.trim())
-  .filter(Boolean);
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-const colors = colorsText
-  .split("\n")
-  .map((s) => s.trim())
-  .filter(Boolean);
+    const colors = (v.colors ?? []).filter(
+      (c) => c.colorName.trim() || c.colorCode.trim() || c.imageUrl.trim(),
+    );
 
-const slug = v.slug || slugify(v.name);
+    const slug = v.slug || slugify(v.name);
     if (!v.name.trim()) return toast.error("Name is required");
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
-onSubmit({
-  ...v,
-  slug,
-  features,
-  colors,
-});  }
+    onSubmit({
+      ...v,
+      slug,
+      features,
+      colors,
+    });
+  }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -268,15 +282,113 @@ onSubmit({
             />
           </Field> 
           
-          <Field label="Available Colors (one per line)">
-  <textarea
-    rows={5}
-    value={colorsText}
-    onChange={(e) => setColorsText(e.target.value)}
-    placeholder={"Ivory White\nBeige\nTaupe\nCharcoal Grey\nEmerald Green"}
-    className={inputCls}
-  />
-</Field>
+          <Field label="Available colors">
+            <div className="space-y-3">
+              {(v.colors ?? []).map((color, index) => (
+                <div
+                  key={index}
+                  className="space-y-2 rounded-lg border border-border p-3"
+                >
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                    <Field label="Color name">
+                      <input
+                        value={color.colorName}
+                        onChange={(e) =>
+                          updateColor(index, { colorName: e.target.value })
+                        }
+                        placeholder="e.g. Red"
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Hex">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            /^#[0-9A-Fa-f]{6}$/.test(color.colorCode)
+                              ? color.colorCode
+                              : "#888888"
+                          }
+                          onChange={(e) =>
+                            updateColor(index, { colorCode: e.target.value })
+                          }
+                          className="h-10 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                          aria-label={`Pick hex for ${color.colorName || "color"}`}
+                        />
+                        <input
+                          value={color.colorCode}
+                          onChange={(e) =>
+                            updateColor(index, { colorCode: e.target.value })
+                          }
+                          placeholder="#8B1A1A"
+                          className={`${inputCls} w-28`}
+                        />
+                      </div>
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set(
+                          "colors",
+                          (v.colors ?? []).filter((_, i) => i !== index),
+                        )
+                      }
+                      className="mb-0.5 rounded border border-border px-3 py-2 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  {color.imageUrl ? (
+                    <div className="relative w-28">
+                      <img
+                        src={color.imageUrl}
+                        alt=""
+                        className="aspect-square w-full rounded-md object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateColor(index, { imageUrl: "" })}
+                        className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <UploadBox
+                      uploading={uploadingColorIndex === index}
+                      label="Upload color image"
+                      onFiles={async (files) => {
+                        const file = files[0];
+                        if (!file) return;
+                        setUploadingColorIndex(index);
+                        try {
+                          const url = await uploadProductImage(file);
+                          updateColor(index, { imageUrl: url });
+                          toast.success("Color image uploaded");
+                        } catch (err: any) {
+                          toast.error(err.message || "Upload failed");
+                        } finally {
+                          setUploadingColorIndex(null);
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  set("colors", [
+                    ...(v.colors ?? []),
+                    { colorName: "", colorCode: "", imageUrl: "" },
+                  ])
+                }
+                className="rounded border border-border px-4 py-2 text-sm"
+              >
+                Add color
+              </button>
+            </div>
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <input
@@ -503,7 +615,6 @@ onSubmit({
     </button>
   </div>
 </Card>
-S
 
         <Card title="Display">
           <label className="flex cursor-pointer items-center gap-3">

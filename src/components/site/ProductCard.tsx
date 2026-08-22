@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 import type { Product } from "@/lib/products-api";
@@ -5,6 +6,11 @@ import { inr, waLink, productInquiry } from "@/lib/business";
 import { WhatsAppIcon } from "./WhatsAppIcon";
 
 export function ProductCard({ p }: { p: Product }) {
+  const colors = p.colors ?? [];
+  const [selectedColor, setSelectedColor] = useState(0);
+  const selected = colors[selectedColor];
+  const imageSrc = selected?.imageUrl || p.image_url;
+
   const priceLabel = p.price_on_request
     ? "Price on Request"
     : p.price != null
@@ -51,9 +57,9 @@ export function ProductCard({ p }: { p: Product }) {
             sm:rounded-t-2xl
           "
         >
-          {p.image_url && (
+          {imageSrc && (
             <img
-              src={p.image_url}
+              src={imageSrc}
               alt={p.name}
               loading="lazy"
               className="
@@ -253,6 +259,33 @@ export function ProductCard({ p }: { p: Product }) {
         >
           {priceLabel}
         </div>
+
+        {colors.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
+            {colors.map((color, index) => (
+              <button
+                key={`${color.colorName}-${index}`}
+                type="button"
+                title={color.colorName || `Color ${index + 1}`}
+                aria-label={`Select ${color.colorName || `color ${index + 1}`}`}
+                aria-pressed={selectedColor === index}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelectedColor(index);
+                }}
+                className={`h-4 w-4 shrink-0 rounded-full border shadow-sm sm:h-5 sm:w-5 ${
+                  selectedColor === index
+                    ? "ring-2 ring-emerald ring-offset-1"
+                    : "border-border hover:ring-1 hover:ring-emerald/50"
+                }`}
+                style={{
+                  backgroundColor: color.colorCode || "#d4d4d4",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* =======================================================
             ACTIONS

@@ -107,7 +107,7 @@ export type Database = {
           dimensions: string
           featured: boolean
           features: string[]
-          colors: string[]
+          colors: Json
           gallery_urls: string[]
           video_urls: string[]
           id: string
@@ -130,7 +130,7 @@ export type Database = {
           dimensions?: string
           featured?: boolean
           features?: string[]
-          colors?: string[]
+          colors?: Json
 
           gallery_urls?: string[]
           video_urls?: string[]
@@ -154,7 +154,7 @@ export type Database = {
           dimensions?: string
           featured?: boolean
           features?: string[]
-          colors?: string[]
+          colors?: Json
           gallery_urls?: string[]
           video_urls?: string[]
           id?: string
