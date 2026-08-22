@@ -394,7 +394,7 @@ function ProductPage() {
               <Truck className="h-4 w-4 text-emerald shrink-0" />
               <div>
                 <span className="font-medium text-foreground block">Pan India Delivery</span>
-                10-15 Days
+                Safe & Insured
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ function ProductPage() {
             <div className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4 text-emerald shrink-0" />
               <div>
-                <span className="font-medium text-foreground block">1 Year Warranty</span>
+                <span className="font-medium text-foreground block">5-6 Years Warranty</span>
                 On Frame
               </div>
             </div>
@@ -508,7 +508,7 @@ function ProductPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Warranty</span>
-                    <span className="font-medium text-foreground">{p.warranty || "1 Year on Frame"}</span>
+                    <span className="font-medium text-foreground">{p.warranty || "5-6 Years on Frame"}</span>
                   </div>
                 </div>
               </div>
@@ -596,7 +596,7 @@ function ProductPage() {
           {selectedTab === "shipping" && (
             <div className="space-y-3 text-xs md:text-sm text-foreground/80 max-w-2xl leading-relaxed">
               <p>• <strong>Free Delivery:</strong> All orders within Mumbai MMR include free white-glove door delivery and installation.</p>
-              <p>• <strong>Pan India Delivery:</strong> Standard courier delivery takes between 10–15 business days depending on destination.</p>
+              <p>• <strong>Pan India Delivery:</strong> Safe and insured doorstep delivery nationwide.</p>
               <p>• <strong>Returns & Custom Orders:</strong> Since each piece is custom upholstered to order, standard returns are not accepted unless damaged in transit.</p>
             </div>
           )}
