@@ -7,6 +7,7 @@ import {
   uploadProductVideo,
   slugify,
   mergeProductAsVariant,
+  extractVariantToSeparateProduct,
   type Product,
   type ProductInput,
   type DimensionVariant,
@@ -22,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowRightLeft,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -107,11 +109,11 @@ export function ProductForm({
     (initial?.features ?? []).join("\n"),
   );
 
-  // Merge state
   const [targetParentId, setTargetParentId] = useState("");
   const [targetVariantName, setTargetVariantName] = useState(initial?.name || "");
   const [deleteSourceProduct, setDeleteSourceProduct] = useState(true);
   const [merging, setMerging] = useState(false);
+  const [extractingId, setExtractingId] = useState<string | null>(null);
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
@@ -170,7 +172,6 @@ export function ProductForm({
     }
   }
 
-  // Dimension Variant Handlers
   function addDimensionVariant() {
     const id = `var-${Date.now()}`;
     const newVariant: DimensionVariant = {
@@ -209,7 +210,6 @@ export function ProductForm({
     set("dimension_variants", list);
   }
 
-  // Nested Variant Color Handlers
   function addColorToVariant(varIdx: number) {
     const list = [...(v.dimension_variants ?? [])];
     const currentColors = list[varIdx].colors ?? [];
@@ -231,7 +231,21 @@ export function ProductForm({
     set("dimension_variants", list);
   }
 
-  // Merge Action Handler
+  async function handleExtractVariant(variantId: string) {
+    if (!initial?.id) return;
+    if (!confirm("Are you sure you want to extract this variant back into its own separate product?")) return;
+
+    setExtractingId(variantId);
+    try {
+      const created = await extractVariantToSeparateProduct(initial.id, variantId);
+      toast.success("Variant successfully extracted back to its own product!");
+      window.location.href = `/admin/products/${created.id}`;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to extract variant");
+      setExtractingId(null);
+    }
+  }
+
   async function handleMergeProduct() {
     if (!initial?.id) return;
     if (!targetParentId) {
@@ -246,7 +260,7 @@ export function ProductForm({
         targetVariantName || v.name,
         deleteSourceProduct
       );
-      toast.success("Successfully converted and moved as a variant!");
+      toast.success("Successfully converted and moved as variant!");
       window.location.href = `/admin/products/${targetParentId}`;
     } catch (err: any) {
       toast.error(err.message || "Failed to merge product.");
@@ -364,7 +378,7 @@ export function ProductForm({
         {/* NESTED VARIANTS / DIMENSIONS MANAGER */}
         <Card title="Variants / Dimensions & Variations">
           <p className="text-xs text-muted-foreground mb-3">
-            Add size variations with custom dimensions, prices, images, and color sub-options.
+            The first default variant represents the main product. Additional rows represent merged or child variants with their own photos and colors.
           </p>
 
           <div className="space-y-4">
@@ -376,7 +390,6 @@ export function ProductForm({
                   key={variant.id || index}
                   className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-sm"
                 >
-                  {/* Variant Top Meta Fields */}
                   <div className="grid gap-3 sm:grid-cols-[1.2fr_1.5fr_1fr_1fr_auto_auto] sm:items-end">
                     <Field label="Variant Name">
                       <input
@@ -423,6 +436,21 @@ export function ProductForm({
                       />
                     </div>
                     <div className="flex items-center gap-1">
+                      {initial?.id && (
+                        <button
+                          type="button"
+                          disabled={extractingId === variant.id}
+                          onClick={() => handleExtractVariant(variant.id)}
+                          className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-emerald"
+                          title="Extract back to separate standalone product"
+                        >
+                          {extractingId === variant.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-emerald" />
+                          ) : (
+                            <Undo2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleExpand(variant.id || String(index))}
@@ -442,10 +470,8 @@ export function ProductForm({
                     </div>
                   </div>
 
-                  {/* Expandable Images & Color Variations for this Specific Dimension */}
                   {isExpanded && (
                     <div className="mt-3 space-y-4 border-t border-border/70 pt-4 bg-muted/20 -mx-4 -mb-4 p-4 rounded-b-xl">
-                      {/* Variant Main Photos */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -493,7 +519,6 @@ export function ProductForm({
                         )}
                       </div>
 
-                      {/* Variant Colors Sub-Section */}
                       <div className="space-y-3 pt-2">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -589,7 +614,7 @@ export function ProductForm({
           <Card title="Move / Convert to Another Product Variant">
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                If this product was accidentally added separately, you can migrate its images, colors, dimensions, and pricing as a size variant under an existing parent product.
+                If this product was accidentally added separately, select the parent product below to migrate all its dimensions, photos, and colors inside the parent as a variant.
               </p>
 
               <Field label="Select Parent Product to Merge Into *">
