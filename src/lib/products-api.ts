@@ -56,6 +56,8 @@ export type Category = {
   sort_order: number;
 };
 
+export type CategoryInput = Omit<Category, "id">;
+
 export function slugify(text: string): string {
   return text
     .toString()
@@ -84,6 +86,10 @@ export function normalizeProductColors(colors: any): ProductColor[] {
   });
 }
 
+// -------------------------------------------------------------
+// CATEGORIES API
+// -------------------------------------------------------------
+
 export async function listCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
@@ -93,6 +99,41 @@ export async function listCategories(): Promise<Category[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+export async function createCategory(input: CategoryInput): Promise<Category> {
+  const { data, error } = await supabase
+    .from("categories")
+    .insert([input as any])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as any;
+}
+
+export async function updateCategory(
+  id: string,
+  input: Partial<CategoryInput>
+): Promise<Category> {
+  const { data, error } = await supabase
+    .from("categories")
+    .update(input as any)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as any;
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// -------------------------------------------------------------
+// PRODUCTS API
+// -------------------------------------------------------------
 
 export async function listProducts(): Promise<Product[]> {
   const { data, error } = await supabase
@@ -109,6 +150,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .from("products")
     .select("*")
     .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as any) ?? null;
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
     .maybeSingle();
 
   if (error) throw error;
@@ -181,7 +233,7 @@ export async function uploadProductVideo(file: File): Promise<string> {
 }
 
 // -------------------------------------------------------------
-// REVIEW API FUNCTIONS
+// REVIEWS API
 // -------------------------------------------------------------
 
 export async function listProductReviews(productId: string): Promise<any[]> {
@@ -193,7 +245,6 @@ export async function listProductReviews(productId: string): Promise<any[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    // fallback in case approved column isn't present
     const fallback = await (supabase as any)
       .from("reviews")
       .select("*")
