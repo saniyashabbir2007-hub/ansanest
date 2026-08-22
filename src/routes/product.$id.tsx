@@ -122,10 +122,8 @@ function ProductPage() {
     },
   });
 
-  // Current active variant
   const activeDimension = hasVariants ? rawVariants[selectedDimensionIndex] || rawVariants[0] : null;
 
-  // Active color options: first checks active variant's colors, then product-level colors
   const activeColors = useMemo(() => {
     if (activeDimension?.colors && activeDimension.colors.length > 0) {
       return activeDimension.colors;
@@ -138,27 +136,22 @@ function ProductPage() {
 
   const currentColor = activeColors[selectedColorIndex] || activeColors[0];
 
-  // Dynamic Media Calculation based on selected dimension and color
   const media = useMemo(() => {
     const list: string[] = [];
 
-    // 1. Color-specific images
     if (currentColor?.images && currentColor.images.length > 0) {
       list.push(...currentColor.images);
     }
 
-    // 2. Dimension variant images
     if (activeDimension?.images && activeDimension.images.length > 0) {
       list.push(...activeDimension.images);
     }
 
-    // 3. Fallback to product images if nothing is added in the variant
     if (list.length === 0) {
       if (p.image_url) list.push(p.image_url);
       if (p.gallery_urls && p.gallery_urls.length > 0) list.push(...p.gallery_urls);
     }
 
-    // Include videos
     const videos = p.video_urls ?? [];
     return [...videos, ...Array.from(new Set(list.filter(Boolean)))];
   }, [currentColor, activeDimension, p.image_url, p.gallery_urls, p.video_urls]);
@@ -290,14 +283,19 @@ function ProductPage() {
             </span>
           </div>
 
-          {/* 1. SELECT SIZE / DIMENSIONS */}
+          {/* 1. SELECT SIZE / DIMENSIONS (HORIZONTALLY SCROLLABLE ON MOBILE) */}
           {hasVariants && (
             <div>
-              <h3 className="mb-2 text-xs md:text-sm font-semibold text-foreground">
-                1. Select Size / Dimensions
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs md:text-sm font-semibold text-foreground">
+                  1. Select Size / Dimensions
+                </h3>
+                <span className="text-[10px] text-muted-foreground md:hidden">
+                  Swipe to view sizes →
+                </span>
+              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="flex sm:grid sm:grid-cols-3 gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x -mx-1 px-1">
                 {rawVariants.map((dim, idx) => {
                   const isSelected = selectedDimensionIndex === idx;
                   return (
@@ -309,26 +307,26 @@ function ProductPage() {
                         setSelectedColorIndex(0);
                         setActiveMediaIdx(0);
                       }}
-                      className={`relative flex flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200 ${
+                      className={`relative flex flex-col justify-between shrink-0 snap-start w-[42vw] max-w-[170px] sm:w-auto rounded-xl border p-2.5 md:p-3 text-left transition-all duration-200 ${
                         isSelected
                           ? "border-emerald bg-emerald/5 ring-2 ring-emerald shadow-sm"
                           : "border-border bg-card hover:border-emerald/50"
                       }`}
                     >
                       <div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-xs text-foreground">
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="font-semibold text-[11px] md:text-xs text-foreground line-clamp-1">
                             {dim.name}
                           </span>
                           {isSelected && (
-                            <span className="h-2 w-2 rounded-full bg-emerald ring-2 ring-emerald/30" />
+                            <span className="h-2 w-2 rounded-full bg-emerald shrink-0 mt-0.5 ring-2 ring-emerald/30" />
                           )}
                         </div>
-                        <div className="mt-1 text-[11px] text-muted-foreground leading-tight line-clamp-2">
+                        <div className="mt-1 text-[10px] md:text-[11px] text-muted-foreground leading-tight line-clamp-2">
                           {dim.dimensions}
                         </div>
                       </div>
-                      <div className="mt-2.5 text-xs font-bold text-emerald">
+                      <div className="mt-2 text-[11px] md:text-xs font-bold text-emerald">
                         {inr(dim.price)}
                       </div>
                     </button>
@@ -440,7 +438,7 @@ function ProductPage() {
         </div>
       </div>
 
-      {/* TABBED FULL WIDTH PRODUCT DETAILS */}
+      {/* TABBED DETAILS */}
       <section className="mt-12 md:mt-16 border-t border-border pt-6">
         <div className="flex border-b border-border gap-6 md:gap-8 overflow-x-auto scrollbar-none text-xs md:text-sm font-semibold uppercase tracking-wider">
           <button
@@ -506,7 +504,6 @@ function ProductPage() {
                 )}
               </div>
 
-              {/* SPECIFICATION CARD IN SIDEBAR */}
               <div className="rounded-xl border border-border bg-card p-4 text-xs">
                 <h4 className="font-semibold text-foreground mb-3 text-sm">Specifications</h4>
                 <div className="space-y-2.5">
@@ -566,7 +563,6 @@ function ProductPage() {
                 ))}
               </div>
 
-              {/* REVIEW FORM */}
               <div className="rounded-xl border border-border p-4 md:p-6">
                 <h3 className="text-base font-semibold">Write a Review</h3>
                 <input
