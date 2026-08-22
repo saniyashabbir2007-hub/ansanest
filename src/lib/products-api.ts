@@ -180,14 +180,27 @@ export async function uploadProductVideo(file: File): Promise<string> {
   return data.publicUrl;
 }
 
+// -------------------------------------------------------------
+// REVIEW API FUNCTIONS
+// -------------------------------------------------------------
+
 export async function listProductReviews(productId: string): Promise<any[]> {
   const { data, error } = await (supabase as any)
     .from("reviews")
     .select("*")
     .eq("product_id", productId)
+    .eq("approved", true)
     .order("created_at", { ascending: false });
 
-  if (error) return [];
+  if (error) {
+    // fallback in case approved column isn't present
+    const fallback = await (supabase as any)
+      .from("reviews")
+      .select("*")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false });
+    return fallback.data ?? [];
+  }
   return data ?? [];
 }
 
@@ -206,8 +219,48 @@ export async function createProductReview(review: {
     rating: review.rating,
     review: review.review || review.review_text || "",
     review_text: review.review_text || review.review || "",
+    approved: false,
   };
 
   const { error } = await (supabase as any).from("reviews").insert([payload]);
+  if (error) throw error;
+}
+
+export async function listPendingProductReviews(): Promise<any[]> {
+  const { data, error } = await (supabase as any)
+    .from("reviews")
+    .select("*, products(name, image_url)")
+    .eq("approved", false)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function listAllProductReviews(): Promise<any[]> {
+  const { data, error } = await (supabase as any)
+    .from("reviews")
+    .select("*, products(name, image_url)")
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function approveProductReview(id: string): Promise<void> {
+  const { error } = await (supabase as any)
+    .from("reviews")
+    .update({ approved: true })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function deleteProductReview(id: string): Promise<void> {
+  const { error } = await (supabase as any)
+    .from("reviews")
+    .delete()
+    .eq("id", id);
+
   if (error) throw error;
 }
