@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Star, FileText, Check } from "lucide-react";
+import { Star, FileText, Check, ShieldCheck, Truck, RefreshCw, Lock } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import {
   getProductBySlug,
@@ -73,6 +73,22 @@ function ProductPage() {
 
   const [active, setActive] = useState(0);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [selectedTab, setSelectedTab] = useState<"description" | "specifications" | "reviews" | "shipping">("description");
+
+  const dimensionVariants: Array<{
+    id: string;
+    name: string;
+    dimensions: string;
+    seats?: string;
+    price: number;
+    stock?: number;
+    is_default?: boolean;
+  }> = (p as any).dimension_variants ?? [];
+
+  const defaultDimensionIdx = dimensionVariants.findIndex((d) => d.is_default);
+  const [selectedDimensionIndex, setSelectedDimensionIndex] = useState<number>(
+    defaultDimensionIdx >= 0 ? defaultDimensionIdx : 0
+  );
 
   const [reviewName, setReviewName] = useState("");
   const [reviewText, setReviewText] = useState("");
@@ -112,7 +128,6 @@ function ProductPage() {
     },
   });
 
-  // Color Variants from Admin
   const variants: Array<{ name: string; images?: string[] }> =
     Array.isArray(p.color_variants) ? p.color_variants : [];
 
@@ -140,14 +155,22 @@ function ProductPage() {
     ...gallery,
   ];
 
-  const priceLabel =
-    p.price_on_request
-      ? "Price on Request"
-      : p.price != null
-        ? inr(Number(p.price))
-        : "—";
+  const hasDimensionVariants = dimensionVariants.length > 0;
+  const activeDimension = hasDimensionVariants ? dimensionVariants[selectedDimensionIndex] : null;
 
-  const waMsg = productInquiry(p.name);
+  const currentPrice = activeDimension?.price ?? (p.price != null ? Number(p.price) : null);
+
+  const priceLabel = p.price_on_request
+    ? "Price on Request"
+    : currentPrice != null
+      ? inr(currentPrice)
+      : "—";
+
+  const waMsg = productInquiry(
+    `${p.name}${activeDimension ? ` (${activeDimension.name})` : ""}${currentVariant ? ` - ${currentVariant.name}` : ""}`
+  );
+
+  const features: string[] = p.features ?? [];
 
   return (
     <div className="container-px mx-auto max-w-7xl py-4 md:py-10">
@@ -224,51 +247,86 @@ function ProductPage() {
         </div>
 
         {/* RIGHT — INFO */}
-        <div className="mt-1 md:mt-0">
-          <div className="text-[10px] md:text-xs uppercase tracking-[0.2em] font-semibold text-emerald">
-            {p.sub_type ?? p.category}
-          </div>
-
-          <h1 className="mt-1 font-display text-xl md:text-4xl lg:text-5xl text-foreground">
-            {p.name}
-          </h1>
-
-          <div className="mt-2 flex flex-wrap gap-1.5 md:gap-2">
-            <span className="rounded-full border border-emerald/20 bg-emerald/10 px-2.5 py-0.5 text-[10px] md:text-xs font-medium text-emerald">
-              Premium Upholstery
-            </span>
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] md:text-xs font-medium text-amber-700">
-              Hand Crafted
-            </span>
-            <span className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] md:text-xs font-medium text-foreground">
-              Made to Order
-            </span>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex">
-              {[0, 1, 2, 3].map((i) => (
-                <Star
-                  key={i}
-                  className="h-3.5 w-3.5 fill-gold text-gold"
-                />
-              ))}
-              <Star className="h-3.5 w-3.5 text-gold/40" />
+        <div className="mt-1 md:mt-0 space-y-4 md:space-y-5">
+          <div>
+            <div className="text-[10px] md:text-xs uppercase tracking-[0.2em] font-semibold text-emerald">
+              {p.sub_type ?? p.category}
             </div>
-            <span className="text-xs text-muted-foreground">
-              4.0 · Customer Rated
+
+            <h1 className="mt-1 font-display text-2xl md:text-4xl lg:text-5xl text-foreground">
+              {p.name}
+            </h1>
+
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex">
+                {[0, 1, 2, 3].map((i) => (
+                  <Star
+                    key={i}
+                    className="h-3.5 w-3.5 fill-gold text-gold"
+                  />
+                ))}
+                <Star className="h-3.5 w-3.5 text-gold/40" />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                4.8 · ({reviews.length} reviews)
+              </span>
+            </div>
+          </div>
+
+          {/* DYNAMIC PRICE */}
+          <div>
+            {hasDimensionVariants && (
+              <span className="text-xs text-muted-foreground mr-1.5">From</span>
+            )}
+            <span className="text-2xl md:text-3xl font-bold text-emerald">
+              {priceLabel}
             </span>
           </div>
 
-          <div className="mt-2.5 text-2xl font-bold text-emerald md:text-4xl">
-            {priceLabel}
-          </div>
+          {/* 1. SELECT SIZE / DIMENSIONS */}
+          {hasDimensionVariants && (
+            <div>
+              <h3 className="mb-2 text-xs md:text-sm font-semibold text-foreground">
+                1. Select Size / Dimensions
+              </h3>
 
-          {/* COMPACT COLOR SWATCHES */}
+              <div className="grid grid-cols-3 gap-2">
+                {dimensionVariants.map((dim, idx) => {
+                  const isSelected = selectedDimensionIndex === idx;
+                  return (
+                    <button
+                      key={dim.id || idx}
+                      type="button"
+                      onClick={() => setSelectedDimensionIndex(idx)}
+                      className={`flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all duration-200 ${
+                        isSelected
+                          ? "border-emerald bg-emerald/5 ring-1 ring-emerald shadow-sm"
+                          : "border-border bg-card hover:border-emerald/50"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-semibold text-xs text-foreground">
+                          {dim.name}
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-muted-foreground leading-tight line-clamp-2">
+                          {dim.dimensions}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs font-bold text-emerald">
+                        {inr(dim.price)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. SELECT COLOR */}
           {hasVariants && (
-            <div className="mt-3 md:mt-5">
-              <h3 className="mb-1.5 text-xs md:text-sm font-semibold">
-                Color: {currentVariant?.name}
+            <div>
+              <h3 className="mb-2 text-xs md:text-sm font-semibold text-foreground">
+                2. Select Color: <span className="font-normal text-muted-foreground">{currentVariant?.name}</span>
               </h3>
 
               <div className="flex flex-wrap gap-2">
@@ -287,7 +345,7 @@ function ProductPage() {
                         setSelectedVariantIndex(index);
                         setActive(0);
                       }}
-                      className={`relative h-9 w-9 md:h-11 md:w-11 rounded-full border-2 overflow-hidden shadow-sm transition-all duration-200 ${
+                      className={`relative h-9 w-9 md:h-10 md:w-10 rounded-full border-2 overflow-hidden shadow-sm transition-all duration-200 ${
                         isSelected
                           ? "border-emerald ring-2 ring-emerald/30 scale-105"
                           : "border-border/60 hover:border-emerald/60 opacity-80 hover:opacity-100"
@@ -309,43 +367,13 @@ function ProductPage() {
             </div>
           )}
 
-          {/* QUICK SPECIFICATIONS */}
-          <div className="mt-4 md:mt-6 rounded-xl md:rounded-2xl border border-border bg-muted/20 p-3.5 md:p-5">
-            <h3 className="mb-2 md:mb-4 text-xs md:text-sm font-semibold text-foreground">
-              Specifications
-            </h3>
-
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs md:text-sm">
-              <div>
-                <div className="text-muted-foreground">Material</div>
-                <div className="mt-0.5 font-medium">{p.material ?? "—"}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Dimensions</div>
-                <div className="mt-0.5 font-medium">{p.dimensions ?? "—"}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Availability</div>
-                <div className="mt-0.5 font-medium">{p.availability}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Delivery</div>
-                <div className="mt-0.5 font-medium">{p.delivery_time ?? "Made to Order"}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-2.5 text-xs text-muted-foreground">
-            Inclusive of all taxes · Free delivery in Mumbai MMR
-          </div>
-
           {/* PRIMARY ACTIONS */}
-          <div className="mt-4 md:mt-6 grid gap-2.5 sm:grid-cols-2">
+          <div className="pt-2 grid gap-2.5 sm:grid-cols-2">
             <a
               href={waLink(waMsg)}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 text-sm font-medium text-white transition hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 text-sm font-medium text-white transition hover:opacity-90 shadow-sm"
             >
               <WhatsAppIcon className="h-4 w-4" />
               WhatsApp Enquiry
@@ -359,140 +387,219 @@ function ProductPage() {
               Request a Quote
             </Link>
           </div>
+
+          {/* VALUE PROPOSITIONS STRIP */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-border/80 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4 text-emerald shrink-0" />
+              <div>
+                <span className="font-medium text-foreground block">Pan India Delivery</span>
+                10-15 Days
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald shrink-0" />
+              <div>
+                <span className="font-medium text-foreground block">Premium Quality</span>
+                Assured
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-emerald shrink-0" />
+              <div>
+                <span className="font-medium text-foreground block">1 Year Warranty</span>
+                On Frame
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-emerald shrink-0" />
+              <div>
+                <span className="font-medium text-foreground block">Secure Payment</span>
+                100% Safe
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* FULL WIDTH DETAILS */}
-      <section className="mt-8 md:mt-12 border-t border-border pt-6 md:pt-10">
-        <div>
-          <h2 className="font-display text-2xl md:text-3xl text-foreground">
-            About this Product
-          </h2>
-          <p className="mt-2 md:mt-4 max-w-4xl text-sm md:text-base leading-relaxed text-foreground/80">
-            {p.description}
-          </p>
-        </div>
-
-        <div className="mt-6 md:mt-10 grid gap-6 md:gap-8 lg:grid-cols-2">
-          {p.features?.length > 0 && (
-            <Block title="Why You'll Love It">
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {p.features.map((f: string) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2 text-xs md:text-sm text-foreground/80"
-                  >
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
-
-          {hasVariants && (
-            <Block title="Available Color Options">
-              <div className="flex flex-wrap gap-2.5">
-                {variants.map((v, index) => {
-                  const thumb = v.images && v.images.length > 0 ? v.images[0] : p.image_url;
-
-                  return (
-                    <div
-                      key={`${v.name}-${index}`}
-                      className="rounded-xl border border-border bg-card px-3 py-2 md:px-4 md:py-3 transition-all duration-300 hover:border-emerald hover:shadow-md"
-                    >
-                      <div className="flex items-center gap-2">
-                        {thumb && (
-                          <img
-                            src={thumb}
-                            alt={v.name}
-                            className="h-5 w-5 rounded-full object-cover border border-border"
-                          />
-                        )}
-                        <div className="text-xs md:text-sm font-medium text-foreground">
-                          {v.name}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Block>
-          )}
-        </div>
-      </section>
-
-      {/* REVIEWS */}
-      <section className="mt-10 md:mt-16 border-t border-border pt-6 md:pt-10">
-        <h2 className="font-display text-2xl md:text-3xl text-foreground">
-          Customer Reviews
-        </h2>
-
-        <div className="mt-6 space-y-4">
-          {reviews.map((r: any) => (
-            <div
-              key={r.id}
-              className="rounded-xl border border-border p-4 md:p-5"
-            >
-              <div className="flex items-center gap-1.5">
-                {[...Array(r.rating)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-3.5 w-3.5 fill-gold text-gold"
-                  />
-                ))}
-              </div>
-              <div className="mt-1.5 text-sm font-semibold">{r.customer_name}</div>
-              <p className="mt-1 text-xs md:text-sm text-muted-foreground">{r.review}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* REVIEW FORM */}
-        <div className="mt-6 md:mt-10 rounded-xl border border-border p-4 md:p-6">
-          <h3 className="text-lg md:text-xl font-semibold">Write a Review</h3>
-
-          <input
-            value={reviewName}
-            onChange={(e) => setReviewName(e.target.value)}
-            placeholder="Your Name"
-            className="mt-3 w-full rounded-md border border-border p-2.5 text-sm"
-          />
-
-          <select
-            value={rating}
-            onChange={(e) => setRating(Number(e.target.value))}
-            className="mt-3 w-full rounded-md border border-border p-2.5 text-sm"
-          >
-            <option value={5}>⭐⭐⭐⭐⭐</option>
-            <option value={4}>⭐⭐⭐⭐</option>
-            <option value={3}>⭐⭐⭐</option>
-            <option value={2}>⭐⭐</option>
-            <option value={1}>⭐</option>
-          </select>
-
-          <textarea
-            value={reviewText}
-            onChange={(e) => setReviewText(e.target.value)}
-            placeholder="Tell us about this product..."
-            rows={4}
-            className="mt-3 w-full rounded-md border border-border p-2.5 text-sm"
-          />
-
+      {/* TABBED FULL WIDTH PRODUCT DETAILS */}
+      <section className="mt-12 md:mt-16 border-t border-border pt-6">
+        <div className="flex border-b border-border gap-6 md:gap-8 overflow-x-auto scrollbar-none text-xs md:text-sm font-semibold uppercase tracking-wider">
           <button
-            onClick={() =>
-              reviewMutation.mutate({
-                product_id: p.id,
-                customer_name: reviewName,
-                email: "",
-                rating,
-                review: reviewText,
-              })
-            }
-            className="mt-3 rounded-md bg-emerald px-5 py-2.5 text-sm text-white"
+            type="button"
+            onClick={() => setSelectedTab("description")}
+            className={`pb-3 transition border-b-2 ${
+              selectedTab === "description"
+                ? "border-emerald text-emerald"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
-            Submit Review
+            Description
           </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTab("specifications")}
+            className={`pb-3 transition border-b-2 ${
+              selectedTab === "specifications"
+                ? "border-emerald text-emerald"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Specifications
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTab("reviews")}
+            className={`pb-3 transition border-b-2 ${
+              selectedTab === "reviews"
+                ? "border-emerald text-emerald"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Reviews ({reviews.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTab("shipping")}
+            className={`pb-3 transition border-b-2 ${
+              selectedTab === "shipping"
+                ? "border-emerald text-emerald"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Shipping & Returns
+          </button>
+        </div>
+
+        <div className="py-6">
+          {selectedTab === "description" && (
+            <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+              <div className="space-y-4 text-sm leading-relaxed text-foreground/85">
+                <p>{p.description}</p>
+                {features.length > 0 && (
+                  <ul className="space-y-2 pt-2">
+                    {features.map((f: string) => (
+                      <li key={f} className="flex items-start gap-2 text-xs md:text-sm">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* SPECIFICATION CARD IN SIDEBAR */}
+              <div className="rounded-xl border border-border bg-card p-4 text-xs">
+                <h4 className="font-semibold text-foreground mb-3 text-sm">Specifications</h4>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between border-b border-border/50 pb-1.5">
+                    <span className="text-muted-foreground">Material</span>
+                    <span className="font-medium text-foreground">{p.material || "Solid Wood"}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-1.5">
+                    <span className="text-muted-foreground">Dimensions</span>
+                    <span className="font-medium text-foreground">
+                      {activeDimension?.dimensions || p.dimensions || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-1.5">
+                    <span className="text-muted-foreground">Availability</span>
+                    <span className="font-medium text-foreground">{p.availability}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Warranty</span>
+                    <span className="font-medium text-foreground">{p.warranty || "1 Year on Frame"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedTab === "specifications" && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">Build & Material</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{p.material || "Crafted with reinforced hardwood framing and high-resilience foam padding."}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">Available Dimensions</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{p.dimensions || "Custom dimensions available upon request."}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">Care Instructions</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{p.care_instructions || "Vacuum clean regularly. Blot spills immediately with a dry cloth."}</p>
+              </div>
+            </div>
+          )}
+
+          {selectedTab === "reviews" && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                {reviews.map((r: any) => (
+                  <div key={r.id} className="rounded-xl border border-border p-4">
+                    <div className="flex items-center gap-1.5">
+                      {[...Array(r.rating)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-gold text-gold" />
+                      ))}
+                    </div>
+                    <div className="mt-1.5 text-sm font-semibold">{r.customer_name}</div>
+                    <p className="mt-1 text-xs md:text-sm text-muted-foreground">{r.review || r.review_text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* REVIEW FORM */}
+              <div className="rounded-xl border border-border p-4 md:p-6">
+                <h3 className="text-base font-semibold">Write a Review</h3>
+                <input
+                  value={reviewName}
+                  onChange={(e) => setReviewName(e.target.value)}
+                  placeholder="Your Name"
+                  className="mt-3 w-full rounded-md border border-border p-2.5 text-xs"
+                />
+                <select
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
+                  className="mt-3 w-full rounded-md border border-border p-2.5 text-xs"
+                >
+                  <option value={5}>⭐⭐⭐⭐⭐</option>
+                  <option value={4}>⭐⭐⭐⭐</option>
+                  <option value={3}>⭐⭐⭐</option>
+                  <option value={2}>⭐⭐</option>
+                  <option value={1}>⭐</option>
+                </select>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Tell us about this product..."
+                  rows={4}
+                  className="mt-3 w-full rounded-md border border-border p-2.5 text-xs"
+                />
+                <button
+                  onClick={() =>
+                    reviewMutation.mutate({
+                      product_id: p.id,
+                      customer_name: reviewName,
+                      email: "",
+                      rating,
+                      review_text: reviewText,
+                    })
+                  }
+                  className="mt-3 rounded-md bg-emerald px-4 py-2 text-xs font-semibold text-white"
+                >
+                  Submit Review
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedTab === "shipping" && (
+            <div className="space-y-3 text-xs md:text-sm text-foreground/80 max-w-2xl leading-relaxed">
+              <p>• <strong>Free Delivery:</strong> All orders within Mumbai MMR include free white-glove door delivery and installation.</p>
+              <p>• <strong>Pan India Delivery:</strong> Standard courier delivery takes between 10–15 business days depending on destination.</p>
+              <p>• <strong>Returns & Custom Orders:</strong> Since each piece is custom upholstered to order, standard returns are not accepted unless damaged in transit.</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -513,21 +620,6 @@ function ProductPage() {
           </div>
         </section>
       )}
-    </div>
-  );
-}
-
-function Block({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-t border-border pt-4">
-      <h3 className="font-display text-base md:text-lg text-foreground">{title}</h3>
-      <div className="mt-1.5">{children}</div>
     </div>
   );
 }

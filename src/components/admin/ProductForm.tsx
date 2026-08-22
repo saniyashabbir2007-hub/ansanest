@@ -5,12 +5,11 @@ import {
   uploadProductImage,
   uploadProductVideo,
   slugify,
-  normalizeProductColors,
   type Product,
-  type ProductColor,
   type ProductInput,
+  type DimensionVariant,
 } from "@/lib/products-api";
-import { Upload, X, Star, Loader2 } from "lucide-react";
+import { Upload, X, Star, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export type ProductFormValues = ProductInput;
@@ -30,6 +29,7 @@ const empty: ProductFormValues = {
   features: [],
   colors: [],
   color_variants: [],
+  dimension_variants: [],
   material: "",
   dimensions: "",
   availability: "Made to Order",
@@ -65,13 +65,14 @@ export function ProductForm({
           image_url: initial.image_url,
           gallery_urls: initial.gallery_urls ?? [],
           video_urls: (initial as any).video_urls ?? [],
-          short_description: initial.short_description,
+          short_description: initial.short_description ?? "",
           description: initial.description,
           features: initial.features ?? [],
-          colors: normalizeProductColors(initial.colors),
+          colors: initial.colors ?? [],
           color_variants: (initial as any).color_variants ?? [],
-          material: initial.material,
-          dimensions: initial.dimensions,
+          dimension_variants: (initial as any).dimension_variants ?? [],
+          material: initial.material ?? "",
+          dimensions: initial.dimensions ?? "",
           availability: initial.availability,
           delivery_time: initial.delivery_time ?? null,
           customizable: initial.customizable ?? false,
@@ -82,13 +83,13 @@ export function ProductForm({
         }
       : empty,
   );
+
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingVideos, setUploadingVideos] = useState(false);
   const [featuresText, setFeaturesText] = useState(
     (initial?.features ?? []).join("\n"),
   );
-  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null);
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
@@ -99,7 +100,8 @@ export function ProductForm({
     try {
       const url = await uploadProductImage(file);
       set("image_url", url);
-      if (v.gallery_urls.length === 0) set("gallery_urls", [url]);
+      const gallery = v.gallery_urls ?? [];
+      if (gallery.length === 0) set("gallery_urls", [url]);
       toast.success("Image uploaded");
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
@@ -115,7 +117,8 @@ export function ProductForm({
       for (const file of Array.from(files)) {
         urls.push(await uploadProductImage(file));
       }
-      set("gallery_urls", [...v.gallery_urls, ...urls]);
+      const gallery = v.gallery_urls ?? [];
+      set("gallery_urls", [...gallery, ...urls]);
       toast.success(`${urls.length} image${urls.length === 1 ? "" : "s"} uploaded`);
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
@@ -125,36 +128,54 @@ export function ProductForm({
   }
 
   async function handleVideoUpload(files: FileList) {
-  setUploadingVideos(true);
+    setUploadingVideos(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        urls.push(await uploadProductVideo(file));
+      }
+      const videos = v.video_urls ?? [];
+      set("video_urls", [...videos, ...urls]);
+      toast.success(`${urls.length} video${urls.length === 1 ? "" : "s"} uploaded`);
+    } catch (e: any) {
+      toast.error(e.message || "Upload failed");
+    } finally {
+      setUploadingVideos(false);
+    }
+  }
 
-  try {
-    const urls: string[] = [];
+  function addDimensionVariant() {
+    const newVariant: DimensionVariant = {
+      id: `var-${Date.now()}`,
+      name: "",
+      dimensions: "",
+      seats: "",
+      price: v.price || 0,
+      stock: 10,
+      is_default: (v.dimension_variants ?? []).length === 0,
+    };
+    set("dimension_variants", [...(v.dimension_variants ?? []), newVariant]);
+  }
 
-    for (const file of Array.from(files)) {
-      urls.push(await uploadProductVideo(file));
+  function updateDimensionVariant(index: number, patch: Partial<DimensionVariant>) {
+    const list = [...(v.dimension_variants ?? [])];
+    list[index] = { ...list[index], ...patch };
+
+    if (patch.is_default) {
+      list.forEach((item, i) => {
+        if (i !== index) item.is_default = false;
+      });
     }
 
-    set("video_urls", [
-      ...(v.video_urls ?? []),
-      ...urls,
-    ]);
-
-    toast.success(
-      `${urls.length} video${urls.length === 1 ? "" : "s"} uploaded`
-    );
-  } catch (e: any) {
-    toast.error(e.message || "Upload failed");
-  } finally {
-    setUploadingVideos(false);
+    set("dimension_variants", list);
   }
-}
 
-  function updateColor(index: number, patch: Partial<ProductColor>) {
-    setV((s) => {
-      const colors = [...(s.colors ?? [])];
-      colors[index] = { ...colors[index], ...patch };
-      return { ...s, colors };
-    });
+  function removeDimensionVariant(index: number) {
+    const list = (v.dimension_variants ?? []).filter((_, i) => i !== index);
+    if (list.length > 0 && !list.some((item) => item.is_default)) {
+      list[0].is_default = true;
+    }
+    set("dimension_variants", list);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -164,26 +185,33 @@ export function ProductForm({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const colors = (v.colors ?? []).filter(
-      (c) => c.colorName.trim() || c.colorCode.trim() || c.imageUrl.trim(),
-    );
-
     const slug = v.slug || slugify(v.name);
     if (!v.name.trim()) return toast.error("Name is required");
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
+
+    let basePrice = v.price;
+    if (v.dimension_variants && v.dimension_variants.length > 0) {
+      const validPrices = v.dimension_variants
+        .map((item) => Number(item.price))
+        .filter((p) => !isNaN(p) && p > 0);
+      if (validPrices.length > 0) {
+        basePrice = Math.min(...validPrices);
+      }
+    }
+
     onSubmit({
       ...v,
+      price: basePrice,
       slug,
       features,
-      colors,
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
-        <Card title="Basic details">
+        <Card title="Basic Details">
           <Field label="Product name *">
             <input
               required
@@ -209,11 +237,11 @@ export function ProductForm({
                 ))}
               </select>
             </Field>
-            <Field label="Sub-type (optional)">
+            <Field label="Sub Category (optional)">
               <input
                 value={v.sub_type ?? ""}
                 onChange={(e) => set("sub_type", e.target.value || null)}
-                placeholder="e.g. U-Shaped Sectional Sofas"
+                placeholder="e.g. Chesterfield Sofa"
                 className={inputCls}
               />
             </Field>
@@ -239,24 +267,120 @@ export function ProductForm({
             <label htmlFor="por" className="text-sm">Show as "Price on Request"</label>
           </div>
           {!v.price_on_request && (
-            <Field label="Price (₹)">
+            <Field label="Base Price (Lowest Variant Price) (₹)">
               <input
                 type="number"
                 step="1"
                 min="0"
                 value={v.price ?? ""}
                 onChange={(e) => set("price", e.target.value === "" ? null : Number(e.target.value))}
+                placeholder="e.g. 24999"
                 className={inputCls}
               />
             </Field>
           )}
         </Card>
 
+        {/* VARIANTS / DIMENSIONS TABLE */}
+        <Card title="Variants / Dimensions">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border text-muted-foreground">
+                <tr>
+                  <th className="pb-2 font-medium">Variant Name</th>
+                  <th className="pb-2 font-medium">Dimensions (in Inches)</th>
+                  <th className="pb-2 font-medium">Seats</th>
+                  <th className="pb-2 font-medium">Price (₹)</th>
+                  <th className="pb-2 font-medium">Stock</th>
+                  <th className="pb-2 text-center font-medium">Default</th>
+                  <th className="pb-2 text-center font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {(v.dimension_variants ?? []).map((variant, index) => (
+                  <tr key={variant.id || index} className="align-middle">
+                    <td className="py-2 pr-2">
+                      <input
+                        value={variant.name}
+                        onChange={(e) => updateDimensionVariant(index, { name: e.target.value })}
+                        placeholder="e.g. 1 Seater"
+                        className={`${inputCls} py-1 text-xs`}
+                      />
+                    </td>
+                    <td className="py-2 pr-2">
+                      <input
+                        value={variant.dimensions}
+                        onChange={(e) => updateDimensionVariant(index, { dimensions: e.target.value })}
+                        placeholder='38" W x 38" D x 30" H'
+                        className={`${inputCls} py-1 text-xs`}
+                      />
+                    </td>
+                    <td className="py-2 pr-2">
+                      <input
+                        value={variant.seats ?? ""}
+                        onChange={(e) => updateDimensionVariant(index, { seats: e.target.value })}
+                        placeholder="1 Seater"
+                        className={`${inputCls} py-1 text-xs w-20`}
+                      />
+                    </td>
+                    <td className="py-2 pr-2">
+                      <input
+                        type="number"
+                        value={variant.price || ""}
+                        onChange={(e) => updateDimensionVariant(index, { price: Number(e.target.value) })}
+                        placeholder="24999"
+                        className={`${inputCls} py-1 text-xs w-24`}
+                      />
+                    </td>
+                    <td className="py-2 pr-2">
+                      <input
+                        type="number"
+                        value={variant.stock ?? 10}
+                        onChange={(e) => updateDimensionVariant(index, { stock: Number(e.target.value) })}
+                        placeholder="10"
+                        className={`${inputCls} py-1 text-xs w-16`}
+                      />
+                    </td>
+                    <td className="py-2 text-center">
+                      <input
+                        type="radio"
+                        name="default_variant"
+                        checked={variant.is_default || false}
+                        onChange={() => updateDimensionVariant(index, { is_default: true })}
+                        className="cursor-pointer text-emerald focus:ring-emerald"
+                      />
+                    </td>
+                    <td className="py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => removeDimensionVariant(index)}
+                        className="rounded p-1 text-muted-foreground hover:text-red-500 transition"
+                        title="Remove Variant"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            type="button"
+            onClick={addDimensionVariant}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Variant
+          </button>
+        </Card>
+
         <Card title="Descriptions">
           <Field label="Short description (shown on cards)">
             <textarea
               rows={2}
-              value={v.short_description}
+              value={v.short_description ?? ""}
               onChange={(e) => set("short_description", e.target.value)}
               className={inputCls}
             />
@@ -280,132 +404,27 @@ export function ProductForm({
               placeholder={"Hand-tufted\nSolid wood frame\nStain-resistant fabric"}
               className={inputCls}
             />
-          </Field> 
-          
-          <Field label="Available colors">
-            <div className="space-y-3">
-              {(v.colors ?? []).map((color, index) => (
-                <div
-                  key={index}
-                  className="space-y-2 rounded-lg border border-border p-3"
-                >
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-                    <Field label="Color name">
-                      <input
-                        value={color.colorName}
-                        onChange={(e) =>
-                          updateColor(index, { colorName: e.target.value })
-                        }
-                        placeholder="e.g. Red"
-                        className={inputCls}
-                      />
-                    </Field>
-                    <Field label="Hex">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={
-                            /^#[0-9A-Fa-f]{6}$/.test(color.colorCode)
-                              ? color.colorCode
-                              : "#888888"
-                          }
-                          onChange={(e) =>
-                            updateColor(index, { colorCode: e.target.value })
-                          }
-                          className="h-10 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
-                          aria-label={`Pick hex for ${color.colorName || "color"}`}
-                        />
-                        <input
-                          value={color.colorCode}
-                          onChange={(e) =>
-                            updateColor(index, { colorCode: e.target.value })
-                          }
-                          placeholder="#8B1A1A"
-                          className={`${inputCls} w-28`}
-                        />
-                      </div>
-                    </Field>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        set(
-                          "colors",
-                          (v.colors ?? []).filter((_, i) => i !== index),
-                        )
-                      }
-                      className="mb-0.5 rounded border border-border px-3 py-2 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  {color.imageUrl ? (
-                    <div className="relative w-28">
-                      <img
-                        src={color.imageUrl}
-                        alt=""
-                        className="aspect-square w-full rounded-md object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => updateColor(index, { imageUrl: "" })}
-                        className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <UploadBox
-                      uploading={uploadingColorIndex === index}
-                      label="Upload color image"
-                      onFiles={async (files) => {
-                        const file = files[0];
-                        if (!file) return;
-                        setUploadingColorIndex(index);
-                        try {
-                          const url = await uploadProductImage(file);
-                          updateColor(index, { imageUrl: url });
-                          toast.success("Color image uploaded");
-                        } catch (err: any) {
-                          toast.error(err.message || "Upload failed");
-                        } finally {
-                          setUploadingColorIndex(null);
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  set("colors", [
-                    ...(v.colors ?? []),
-                    { colorName: "", colorCode: "", imageUrl: "" },
-                  ])
-                }
-                className="rounded border border-border px-4 py-2 text-sm"
-              >
-                Add color
-              </button>
-            </div>
           </Field>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Material">
               <input
-                value={v.material}
+                value={v.material ?? ""}
                 onChange={(e) => set("material", e.target.value)}
+                placeholder="Solid Wood / Leather"
                 className={inputCls}
               />
             </Field>
-            <Field label="Dimensions">
+            <Field label="Default Dimensions">
               <input
-                value={v.dimensions}
+                value={v.dimensions ?? ""}
                 onChange={(e) => set("dimensions", e.target.value)}
                 placeholder='e.g. 88"W × 38"D × 30"H'
                 className={inputCls}
               />
             </Field>
           </div>
+
           <Field label="Availability">
             <select
               value={v.availability}
@@ -420,10 +439,8 @@ export function ProductForm({
         </Card>
       </div>
 
-      
-
       <div className="space-y-6">
-        <Card title="Main image *">
+        <Card title="Main Images *">
           {v.image_url ? (
             <div className="relative">
               <img src={v.image_url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
@@ -444,15 +461,15 @@ export function ProductForm({
           )}
         </Card>
 
-        <Card title="Gallery">
+        <Card title="Gallery Images">
           <div className="grid grid-cols-3 gap-2">
-            {v.gallery_urls.map((url, i) => (
+            {(v.gallery_urls ?? []).map((url, i) => (
               <div key={i} className="relative">
                 <img src={url} alt="" className="aspect-square w-full rounded-md object-cover" />
                 <button
                   type="button"
                   onClick={() =>
-                    set("gallery_urls", v.gallery_urls.filter((_, idx) => idx !== i))
+                    set("gallery_urls", (v.gallery_urls ?? []).filter((_, idx) => idx !== i))
                   }
                   className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
                 >
@@ -472,149 +489,127 @@ export function ProductForm({
         </Card>
 
         <Card title="Videos">
-  <div className="grid gap-3">
-    {(v.video_urls ?? []).map((url, i) => (
-      <div key={i} className="relative">
-        <video
-          src={url}
-          controls
-          className="w-full rounded-md"
-        />
-
-        <button
-          type="button"
-          onClick={() =>
-            set(
-              "video_urls",
-              (v.video_urls ?? []).filter(
-                (_, idx) => idx !== i
-              )
-            )
-          }
-          className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    ))}
-  </div>
-
-  <div className="mt-3">
-    <UploadBox
-      uploading={uploadingVideos}
-      multiple
-      onFiles={handleVideoUpload}
-      label="Add videos"
-      accept="video/*"
-    />
-  </div>
-</Card>
-<Card title="Color Variants">
-  <div className="space-y-4">
-    {(v.color_variants || []).map((variant: any, index: number) => (
-      <div
-        key={index}
-        className="rounded-lg border p-4 space-y-3"
-      >
-        <input
-          placeholder="Color Name"
-          value={variant.name || ""}
-          onChange={(e) => {
-            const variants = [...(v.color_variants || [])];
-            variants[index].name = e.target.value;
-            set("color_variants", variants);
-          }}
-          className={inputCls}
-        />
-
-        <UploadBox
-          uploading={false}
-          multiple
-          label="Upload Variant Images"
-          onFiles={async (files) => {
-            const uploaded: string[] = [];
-
-            for (const file of Array.from(files)) {
-              uploaded.push(await uploadProductImage(file));
-            }
-
-            const variants = [...(v.color_variants || [])];
-
-            variants[index].images = [
-              ...(variants[index].images || []),
-              ...uploaded,
-            ];
-
-            set("color_variants", variants);
-          }}
-        />
-
-        <div className="grid grid-cols-3 gap-3">
-          {(variant.images || []).map(
-            (img: string, imgIndex: number) => (
-              <div
-                key={imgIndex}
-                className="relative"
-              >
-                <img
-                  src={img}
-                  className="aspect-square rounded-md object-cover"
+          <div className="grid gap-3">
+            {(v.video_urls ?? []).map((url, i) => (
+              <div key={i} className="relative">
+                <video
+                  src={url}
+                  controls
+                  className="w-full rounded-md"
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    set(
+                      "video_urls",
+                      (v.video_urls ?? []).filter((_, idx) => idx !== i)
+                    )
+                  }
+                  className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3">
+            <UploadBox
+              uploading={uploadingVideos}
+              multiple
+              onFiles={handleVideoUpload}
+              label="Add videos"
+              accept="video/*"
+            />
+          </div>
+        </Card>
+
+        <Card title="Color Variants">
+          <div className="space-y-4">
+            {((v.color_variants as any[]) || []).map((variant: any, index: number) => (
+              <div
+                key={index}
+                className="rounded-lg border p-4 space-y-3"
+              >
+                <input
+                  placeholder="Color Name"
+                  value={variant.name || ""}
+                  onChange={(e) => {
+                    const variants = [...((v.color_variants as any[]) || [])];
+                    variants[index].name = e.target.value;
+                    set("color_variants", variants);
+                  }}
+                  className={inputCls}
+                />
+
+                <UploadBox
+                  uploading={false}
+                  multiple
+                  label="Upload Variant Images"
+                  onFiles={async (files) => {
+                    const uploaded: string[] = [];
+                    for (const file of Array.from(files)) {
+                      uploaded.push(await uploadProductImage(file));
+                    }
+                    const variants = [...((v.color_variants as any[]) || [])];
+                    variants[index].images = [
+                      ...(variants[index].images || []),
+                      ...uploaded,
+                    ];
+                    set("color_variants", variants);
+                  }}
+                />
+
+                <div className="grid grid-cols-3 gap-3">
+                  {(variant.images || []).map((img: string, imgIndex: number) => (
+                    <div key={imgIndex} className="relative">
+                      <img
+                        src={img}
+                        className="aspect-square rounded-md object-cover"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 rounded-full bg-white p-1"
+                        onClick={() => {
+                          const variants = [...((v.color_variants as any[]) || [])];
+                          variants[index].images.splice(imgIndex, 1);
+                          set("color_variants", variants);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
                 <button
                   type="button"
-                  className="absolute right-1 top-1 rounded-full bg-white p-1"
                   onClick={() => {
-                    const variants = [
-                      ...(v.color_variants || []),
-                    ];
-
-                    variants[index].images.splice(
-                      imgIndex,
-                      1
-                    );
-
+                    const variants = [...((v.color_variants as any[]) || [])];
+                    variants.splice(index, 1);
                     set("color_variants", variants);
                   }}
+                  className="rounded border px-3 py-2 text-xs"
                 >
-                  ×
+                  Remove Color
                 </button>
               </div>
-            )
-          )}
-        </div>
+            ))}
 
-        <button
-          type="button"
-          onClick={() => {
-            const variants = [...(v.color_variants || [])];
-            variants.splice(index, 1);
-            set("color_variants", variants);
-          }}
-          className="rounded border px-3 py-2"
-        >
-          Remove Color
-        </button>
-      </div>
-    ))}
-
-    <button
-      type="button"
-      onClick={() =>
-        set("color_variants", [
-          ...(v.color_variants || []),
-          {
-            name: "",
-            images: [],
-          },
-        ])
-      }
-      className="rounded border px-4 py-2"
-    >
-      Add Color Variant
-    </button>
-  </div>
-</Card>
+            <button
+              type="button"
+              onClick={() =>
+                set("color_variants", [
+                  ...((v.color_variants as any[]) || []),
+                  { name: "", images: [] },
+                ])
+              }
+              className="rounded border px-4 py-2 text-xs font-medium"
+            >
+              Add Color Variant
+            </button>
+          </div>
+        </Card>
 
         <Card title="Display">
           <label className="flex cursor-pointer items-center gap-3">
@@ -625,7 +620,7 @@ export function ProductForm({
             />
             <span className="inline-flex items-center gap-1.5 text-sm">
               <Star className={`h-4 w-4 ${v.featured ? "fill-gold text-gold" : "text-muted-foreground"}`} />
-              Featured product
+              Featured Product
             </span>
           </label>
           <Field label="Sort order (lower = first)">
@@ -685,7 +680,6 @@ function UploadBox({
   onFiles: (files: FileList) => void;
   label: string;
   accept?: string;
-
 }) {
   return (
     <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground hover:bg-muted">
