@@ -283,7 +283,7 @@ function ProductPage() {
             </span>
           </div>
 
-          {/* 1. SELECT SIZE / DIMENSIONS (HORIZONTALLY SCROLLABLE ON MOBILE) */}
+          {/* 1. SELECT SIZE / DIMENSIONS */}
           {hasVariants && (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -423,7 +423,7 @@ function ProductPage() {
             <div className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4 text-emerald shrink-0" />
               <div>
-                <span className="font-medium text-foreground block">5-6 Years Warranty</span>
+                <span className="font-medium text-foreground block">1-2 Years Warranty</span>
                 On Frame
               </div>
             </div>
@@ -438,7 +438,7 @@ function ProductPage() {
         </div>
       </div>
 
-      {/* TABBED DETAILS */}
+      {/* TABBED FULL WIDTH PRODUCT DETAILS */}
       <section className="mt-12 md:mt-16 border-t border-border pt-6">
         <div className="flex border-b border-border gap-6 md:gap-8 overflow-x-auto scrollbar-none text-xs md:text-sm font-semibold uppercase tracking-wider">
           <button
@@ -504,6 +504,7 @@ function ProductPage() {
                 )}
               </div>
 
+              {/* SPECIFICATION CARD IN SIDEBAR */}
               <div className="rounded-xl border border-border bg-card p-4 text-xs">
                 <h4 className="font-semibold text-foreground mb-3 text-sm">Specifications</h4>
                 <div className="space-y-2.5">
@@ -523,7 +524,7 @@ function ProductPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Warranty</span>
-                    <span className="font-medium text-foreground">{p.warranty || "5-6 Years on Frame"}</span>
+                    <span className="font-medium text-foreground">{p.warranty || "1-2 Years on Frame"}</span>
                   </div>
                 </div>
               </div>
