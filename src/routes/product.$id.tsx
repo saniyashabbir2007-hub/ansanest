@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star, FileText, Check, ShieldCheck, Truck, RefreshCw, Lock } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
@@ -8,6 +8,7 @@ import {
   listProducts,
   listProductReviews,
   createProductReview,
+  type DimensionVariant,
 } from "@/lib/products-api";
 import { BUSINESS, inr, waLink, productInquiry } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -71,21 +72,14 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const p = Route.useLoaderData();
 
-  const [active, setActive] = useState(0);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [activeMediaIdx, setActiveMediaIdx] = useState(0);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedTab, setSelectedTab] = useState<"description" | "specifications" | "reviews" | "shipping">("description");
 
-  const dimensionVariants: Array<{
-    id: string;
-    name: string;
-    dimensions: string;
-    seats?: string;
-    price: number;
-    stock?: number;
-    is_default?: boolean;
-  }> = (p as any).dimension_variants ?? [];
+  const rawVariants: DimensionVariant[] = (p as any).dimension_variants ?? [];
+  const hasVariants = rawVariants.length > 0;
 
-  const defaultDimensionIdx = dimensionVariants.findIndex((d) => d.is_default);
+  const defaultDimensionIdx = rawVariants.findIndex((d) => d.is_default);
   const [selectedDimensionIndex, setSelectedDimensionIndex] = useState<number>(
     defaultDimensionIdx >= 0 ? defaultDimensionIdx : 0
   );
@@ -128,35 +122,46 @@ function ProductPage() {
     },
   });
 
-  const variants: Array<{ name: string; images?: string[] }> =
-    Array.isArray(p.color_variants) ? p.color_variants : [];
+  // Current active variant
+  const activeDimension = hasVariants ? rawVariants[selectedDimensionIndex] || rawVariants[0] : null;
 
-  const hasVariants = variants.length > 0;
-  const currentVariant = hasVariants ? variants[selectedVariantIndex] || variants[0] : null;
+  // Active color options: first checks active variant's colors, then product-level colors
+  const activeColors = useMemo(() => {
+    if (activeDimension?.colors && activeDimension.colors.length > 0) {
+      return activeDimension.colors;
+    }
+    if (Array.isArray(p.color_variants) && p.color_variants.length > 0) {
+      return p.color_variants;
+    }
+    return [];
+  }, [activeDimension, p.color_variants]);
 
-  const variantImages = currentVariant?.images && currentVariant.images.length > 0
-    ? currentVariant.images
-    : [];
+  const currentColor = activeColors[selectedColorIndex] || activeColors[0];
 
-  const heroImage = variantImages[0] || p.image_url;
+  // Dynamic Media Calculation based on selected dimension and color
+  const media = useMemo(() => {
+    const list: string[] = [];
 
-  const gallery = [
-    ...new Set(
-      [
-        heroImage,
-        ...variantImages,
-        ...(p.gallery_urls ?? []),
-      ].filter(Boolean)
-    ),
-  ];
+    // 1. Color-specific images
+    if (currentColor?.images && currentColor.images.length > 0) {
+      list.push(...currentColor.images);
+    }
 
-  const media = [
-    ...(p.video_urls ?? []),
-    ...gallery,
-  ];
+    // 2. Dimension variant images
+    if (activeDimension?.images && activeDimension.images.length > 0) {
+      list.push(...activeDimension.images);
+    }
 
-  const hasDimensionVariants = dimensionVariants.length > 0;
-  const activeDimension = hasDimensionVariants ? dimensionVariants[selectedDimensionIndex] : null;
+    // 3. Fallback to product images if nothing is added in the variant
+    if (list.length === 0) {
+      if (p.image_url) list.push(p.image_url);
+      if (p.gallery_urls && p.gallery_urls.length > 0) list.push(...p.gallery_urls);
+    }
+
+    // Include videos
+    const videos = p.video_urls ?? [];
+    return [...videos, ...Array.from(new Set(list.filter(Boolean)))];
+  }, [currentColor, activeDimension, p.image_url, p.gallery_urls, p.video_urls]);
 
   const currentPrice = activeDimension?.price ?? (p.price != null ? Number(p.price) : null);
 
@@ -167,7 +172,7 @@ function ProductPage() {
       : "—";
 
   const waMsg = productInquiry(
-    `${p.name}${activeDimension ? ` (${activeDimension.name})` : ""}${currentVariant ? ` - ${currentVariant.name}` : ""}`
+    `${p.name}${activeDimension ? ` (${activeDimension.name})` : ""}${currentColor ? ` - ${currentColor.name}` : ""}`
   );
 
   const features: string[] = p.features ?? [];
@@ -192,10 +197,11 @@ function ProductPage() {
         {/* LEFT — GALLERY */}
         <div>
           <div className="overflow-hidden rounded-2xl md:rounded-[28px] border border-border bg-muted shadow-sm">
-            {media[active]?.includes("/videos/") ||
-            media[active]?.match(/\.(mp4|webm|mov)$/i) ? (
+            {media[activeMediaIdx]?.includes("/videos/") ||
+            media[activeMediaIdx]?.match(/\.(mp4|webm|mov)$/i) ? (
               <video
-                src={media[active]}
+                key={media[activeMediaIdx]}
+                src={media[activeMediaIdx]}
                 controls
                 autoPlay
                 muted
@@ -204,9 +210,10 @@ function ProductPage() {
               />
             ) : (
               <img
-                src={media[active] || p.image_url}
+                key={media[activeMediaIdx] || p.image_url}
+                src={media[activeMediaIdx] || p.image_url}
                 alt={p.name}
-                className="aspect-[16/10] md:aspect-[4/3] w-full object-contain bg-white"
+                className="aspect-[16/10] md:aspect-[4/3] w-full object-contain bg-white transition-opacity duration-300"
               />
             )}
           </div>
@@ -218,10 +225,10 @@ function ProductPage() {
                 <button
                   key={i}
                   type="button"
-                  onClick={() => setActive(i)}
+                  onClick={() => setActiveMediaIdx(i)}
                   aria-label={`View product media ${i + 1}`}
                   className={`shrink-0 snap-start overflow-hidden rounded-lg md:rounded-xl border-2 transition-all duration-200 ${
-                    active === i
+                    activeMediaIdx === i
                       ? "border-emerald shadow-sm scale-95"
                       : "border-transparent opacity-75 hover:opacity-100"
                   }`}
@@ -275,7 +282,7 @@ function ProductPage() {
 
           {/* DYNAMIC PRICE */}
           <div>
-            {hasDimensionVariants && (
+            {hasVariants && (
               <span className="text-xs text-muted-foreground mr-1.5">From</span>
             )}
             <span className="text-2xl md:text-3xl font-bold text-emerald">
@@ -284,35 +291,44 @@ function ProductPage() {
           </div>
 
           {/* 1. SELECT SIZE / DIMENSIONS */}
-          {hasDimensionVariants && (
+          {hasVariants && (
             <div>
               <h3 className="mb-2 text-xs md:text-sm font-semibold text-foreground">
                 1. Select Size / Dimensions
               </h3>
 
-              <div className="grid grid-cols-3 gap-2">
-                {dimensionVariants.map((dim, idx) => {
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {rawVariants.map((dim, idx) => {
                   const isSelected = selectedDimensionIndex === idx;
                   return (
                     <button
                       key={dim.id || idx}
                       type="button"
-                      onClick={() => setSelectedDimensionIndex(idx)}
-                      className={`flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all duration-200 ${
+                      onClick={() => {
+                        setSelectedDimensionIndex(idx);
+                        setSelectedColorIndex(0);
+                        setActiveMediaIdx(0);
+                      }}
+                      className={`relative flex flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200 ${
                         isSelected
-                          ? "border-emerald bg-emerald/5 ring-1 ring-emerald shadow-sm"
+                          ? "border-emerald bg-emerald/5 ring-2 ring-emerald shadow-sm"
                           : "border-border bg-card hover:border-emerald/50"
                       }`}
                     >
                       <div>
-                        <div className="font-semibold text-xs text-foreground">
-                          {dim.name}
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-xs text-foreground">
+                            {dim.name}
+                          </span>
+                          {isSelected && (
+                            <span className="h-2 w-2 rounded-full bg-emerald ring-2 ring-emerald/30" />
+                          )}
                         </div>
-                        <div className="mt-0.5 text-[10px] text-muted-foreground leading-tight line-clamp-2">
+                        <div className="mt-1 text-[11px] text-muted-foreground leading-tight line-clamp-2">
                           {dim.dimensions}
                         </div>
                       </div>
-                      <div className="mt-2 text-xs font-bold text-emerald">
+                      <div className="mt-2.5 text-xs font-bold text-emerald">
                         {inr(dim.price)}
                       </div>
                     </button>
@@ -323,27 +339,29 @@ function ProductPage() {
           )}
 
           {/* 2. SELECT COLOR */}
-          {hasVariants && (
+          {activeColors.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs md:text-sm font-semibold text-foreground">
-                2. Select Color: <span className="font-normal text-muted-foreground">{currentVariant?.name}</span>
+                2. Select Color: <span className="font-normal text-muted-foreground">{currentColor?.name}</span>
               </h3>
 
               <div className="flex flex-wrap gap-2">
-                {variants.map((v, index) => {
-                  const isSelected = selectedVariantIndex === index;
-                  const thumb = v.images && v.images.length > 0 ? v.images[0] : p.image_url;
+                {activeColors.map((col: any, index: number) => {
+                  const isSelected = selectedColorIndex === index;
+                  const thumb = col.images && col.images.length > 0
+                    ? col.images[0]
+                    : activeDimension?.images?.[0] || p.image_url;
 
                   return (
                     <button
-                      key={`${v.name}-${index}`}
+                      key={`${col.name}-${index}`}
                       type="button"
-                      title={v.name}
-                      aria-label={`Select ${v.name}`}
+                      title={col.name}
+                      aria-label={`Select ${col.name}`}
                       aria-pressed={isSelected}
                       onClick={() => {
-                        setSelectedVariantIndex(index);
-                        setActive(0);
+                        setSelectedColorIndex(index);
+                        setActiveMediaIdx(0);
                       }}
                       className={`relative h-9 w-9 md:h-10 md:w-10 rounded-full border-2 overflow-hidden shadow-sm transition-all duration-200 ${
                         isSelected
@@ -354,7 +372,7 @@ function ProductPage() {
                       {thumb ? (
                         <img
                           src={thumb}
-                          alt={v.name}
+                          alt={col.name}
                           className="h-full w-full object-cover object-center"
                         />
                       ) : (
