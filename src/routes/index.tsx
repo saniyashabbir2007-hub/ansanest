@@ -3,11 +3,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import hero from "@/assets/hero-sofa.jpg";
-import sectional from "@/assets/sectional.jpg";
-import bed from "@/assets/bed.jpg";
-import custom from "@/assets/custom.jpg";
-
 import { listProducts } from "@/lib/products-api";
 import { BUSINESS } from "@/lib/business";
 import { TestimonialsSection } from "@/components/site/TestimonialsSection";
@@ -17,6 +12,14 @@ import { CarouselSection } from "@/components/site/Home/CarouselSection";
 const COLLECTION_ROTATION_MS = 10_000;
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    try {
+      const products = await listProducts();
+      return { products };
+    } catch {
+      return { products: [] };
+    }
+  },
   head: () => ({
     meta: [
       {
@@ -43,16 +46,21 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const loaderData = Route.useLoaderData();
+
+  const { data: products = loaderData?.products ?? [] } = useQuery({
     queryKey: ["products"],
     queryFn: listProducts,
-    staleTime: 1000 * 60 * 15, // 15 minutes instant cache
-    gcTime: 1000 * 60 * 60,    // 1 hour memory persistence
+    initialData: loaderData?.products,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60,
   });
 
+  const isInitialLoading = products.length === 0;
+
   const featured = products.filter((p) => p.featured);
-  const recommendedProducts = featured.slice(0, 8);
-  const bestSellerProducts = featured.slice(0, 8);
+  const recommendedProducts = featured.length > 0 ? featured.slice(0, 8) : products.slice(0, 8);
+  const bestSellerProducts = featured.length > 0 ? featured.slice(0, 8) : products.slice(0, 8);
 
   const sofas = products
     .filter(
@@ -72,21 +80,14 @@ function Index() {
 
   const getProductImages = (product: any): string[] => {
     const images: string[] = [];
-
-    if (product.image_url) {
-      images.push(product.image_url);
-    }
-
+    if (product.image_url) images.push(product.image_url);
     if (Array.isArray(product.gallery_urls)) {
       images.push(
         ...product.gallery_urls.filter(
-          (image: unknown): image is string =>
-            typeof image === "string" &&
-            image.trim().length > 0
+          (img: unknown): img is string => typeof img === "string" && img.trim().length > 0
         )
       );
     }
-
     return [...new Set(images)];
   };
 
@@ -153,8 +154,8 @@ function Index() {
   return (
     <div>
       <DynamicHero
-        products={featured}
-        isLoading={productsLoading}
+        products={featured.length > 0 ? featured : products}
+        isLoading={isInitialLoading}
       />
 
       <CarouselSection
@@ -177,11 +178,12 @@ function Index() {
         />
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {/* SOFAS & SECTIONALS */}
           <Link
             to="/catalog"
             className="group relative overflow-hidden rounded-2xl"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden">
+            <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
               {sofaCollectionImages.length > 0 ? (
                 sofaCollectionImages.map((image, index) => (
                   <img
@@ -197,11 +199,7 @@ function Index() {
                   />
                 ))
               ) : (
-                <img
-                  src={sectional}
-                  alt="Sofas & Sectionals"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+                <div className="absolute inset-0 animate-pulse bg-muted" />
               )}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -219,11 +217,12 @@ function Index() {
             </div>
           </Link>
 
+          {/* UPHOLSTERED BEDS */}
           <Link
             to="/catalog"
             className="group relative overflow-hidden rounded-2xl"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden">
+            <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
               {bedCollectionImages.length > 0 ? (
                 bedCollectionImages.map((image, index) => (
                   <img
@@ -239,11 +238,7 @@ function Index() {
                   />
                 ))
               ) : (
-                <img
-                  src={bed}
-                  alt="Upholstered Beds"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+                <div className="absolute inset-0 animate-pulse bg-muted" />
               )}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -261,11 +256,12 @@ function Index() {
             </div>
           </Link>
 
+          {/* CUSTOM UPHOLSTERY */}
           <Link
             to="/contact"
             className="group relative overflow-hidden rounded-2xl"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden">
+            <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
               {customCollectionImages.length > 0 ? (
                 customCollectionImages.map((image, index) => (
                   <img
@@ -281,11 +277,7 @@ function Index() {
                   />
                 ))
               ) : (
-                <img
-                  src={custom}
-                  alt="Custom Upholstery"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+                <div className="absolute inset-0 animate-pulse bg-muted" />
               )}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -359,6 +351,7 @@ function Index() {
 
 function DynamicHero({
   products,
+  isLoading,
 }: {
   products: {
     id: string;
@@ -421,16 +414,10 @@ function DynamicHero({
         </div>
 
         <div className="relative">
-          <div className="relative mx-auto aspect-[16/10] w-full max-w-[560px] overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl md:aspect-[4/3]">
-            <img
-              src={hero}
-              alt="ANSA NEST premium furniture"
-              width={1792}
-              height={1152}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-                activeProduct ? "opacity-0" : "opacity-100"
-              }`}
-            />
+          <div className="relative mx-auto aspect-[16/10] w-full max-w-[560px] overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl md:aspect-[4/3] bg-muted">
+            {isLoading && (
+              <div className="absolute inset-0 animate-pulse bg-muted" />
+            )}
 
             {activeProduct && (
               <img
