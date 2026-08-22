@@ -311,7 +311,7 @@ export async function deleteProductReview(id: string): Promise<void> {
 }
 
 // -------------------------------------------------------------
-// MERGE & EXTRACT VARIANT HELPERS
+// VARIANT & PRODUCT MANAGEMENT HELPERS
 // -------------------------------------------------------------
 
 export async function mergeProductAsVariant(
@@ -341,7 +341,6 @@ export async function mergeProductAsVariant(
 
   let existingVariants = target.dimension_variants ?? [];
 
-  // If target has no variants yet, create the parent's default variant first
   if (existingVariants.length === 0) {
     existingVariants = [
       {
@@ -403,7 +402,6 @@ export async function extractVariantToSeparateProduct(
   const variant = variants.find((v) => v.id === variantId);
   if (!variant) throw new Error("Variant not found in product.");
 
-  // Remove variant from parent
   const remainingVariants = variants.filter((v) => v.id !== variantId);
   if (remainingVariants.length > 0 && !remainingVariants.some((v) => v.is_default)) {
     remainingVariants[0].is_default = true;
@@ -413,7 +411,6 @@ export async function extractVariantToSeparateProduct(
     dimension_variants: remainingVariants,
   });
 
-  // Create new standalone product from variant
   const newProduct = await createProduct({
     name: variant.name || `${parent.name} - Variant`,
     slug: slugify(`${parent.name}-${variant.name}-${Date.now().toString().slice(-4)}`),

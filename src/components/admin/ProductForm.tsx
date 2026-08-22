@@ -24,6 +24,7 @@ import {
   ChevronUp,
   ArrowRightLeft,
   Undo2,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -210,6 +211,47 @@ export function ProductForm({
     set("dimension_variants", list);
   }
 
+  // Promote a Variant to become the main Parent Product
+  function promoteVariantToParent(index: number) {
+    const list = [...(v.dimension_variants ?? [])];
+    const selectedVariant = list[index];
+    if (!selectedVariant) return;
+
+    // Create a new variant out of the current parent product data
+    const oldParentAsVariant: DimensionVariant = {
+      id: `var-old-parent-${Date.now()}`,
+      name: v.name,
+      dimensions: v.dimensions || "",
+      seats: v.sub_type || "",
+      price: Number(v.price) || 0,
+      stock: 10,
+      is_default: false,
+      images: [v.image_url, ...(v.gallery_urls ?? [])].filter(Boolean),
+      colors: (v.color_variants as any[]) || [],
+    };
+
+    // Remove selected variant from array and add old parent
+    const remainingVariants = list.filter((_, i) => i !== index);
+    const updatedVariants = [
+      { ...selectedVariant, is_default: true },
+      oldParentAsVariant,
+      ...remainingVariants.filter((v) => v.id !== selectedVariant.id),
+    ];
+
+    // Swap data into main parent product
+    setV((prev) => ({
+      ...prev,
+      name: selectedVariant.name || prev.name,
+      dimensions: selectedVariant.dimensions || prev.dimensions,
+      price: selectedVariant.price || prev.price,
+      image_url: selectedVariant.images?.[0] || prev.image_url,
+      gallery_urls: selectedVariant.images?.slice(1) || prev.gallery_urls,
+      dimension_variants: updatedVariants,
+    }));
+
+    toast.success(`"${selectedVariant.name}" is now the main parent product! Click Save to confirm.`);
+  }
+
   function addColorToVariant(varIdx: number) {
     const list = [...(v.dimension_variants ?? [])];
     const currentColors = list[varIdx].colors ?? [];
@@ -233,7 +275,7 @@ export function ProductForm({
 
   async function handleExtractVariant(variantId: string) {
     if (!initial?.id) return;
-    if (!confirm("Are you sure you want to extract this variant back into its own separate product?")) return;
+    if (!confirm("Are you sure you want to separate this variant back into its own standalone product?")) return;
 
     setExtractingId(variantId);
     try {
@@ -280,6 +322,7 @@ export function ProductForm({
     if (!v.category) return toast.error("Category is required");
     if (!v.image_url) return toast.error("Main image is required");
 
+    // Always ensure the parent product price matches the lowest variant price
     let basePrice = v.price;
     if (v.dimension_variants && v.dimension_variants.length > 0) {
       const validPrices = v.dimension_variants
@@ -378,7 +421,7 @@ export function ProductForm({
         {/* NESTED VARIANTS / DIMENSIONS MANAGER */}
         <Card title="Variants / Dimensions & Variations">
           <p className="text-xs text-muted-foreground mb-3">
-            The first default variant represents the main product. Additional rows represent merged or child variants with their own photos and colors.
+            Manage sizes, dimensions, custom prices, images, and color sub-variants.
           </p>
 
           <div className="space-y-4">
@@ -436,12 +479,22 @@ export function ProductForm({
                       />
                     </div>
                     <div className="flex items-center gap-1">
+                      {/* Make this variant the parent product */}
+                      <button
+                        type="button"
+                        onClick={() => promoteVariantToParent(index)}
+                        className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-amber-500 transition"
+                        title="Promote this variant to become the main parent product"
+                      >
+                        <Crown className="h-4 w-4" />
+                      </button>
+
                       {initial?.id && (
                         <button
                           type="button"
                           disabled={extractingId === variant.id}
                           onClick={() => handleExtractVariant(variant.id)}
-                          className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-emerald"
+                          className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-emerald transition"
                           title="Extract back to separate standalone product"
                         >
                           {extractingId === variant.id ? (
@@ -451,6 +504,7 @@ export function ProductForm({
                           )}
                         </button>
                       )}
+
                       <button
                         type="button"
                         onClick={() => toggleExpand(variant.id || String(index))}
