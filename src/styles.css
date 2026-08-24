@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 
@@ -113,8 +113,34 @@
   h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
-@utility text-balance { text-wrap: balance; }
-@utility container-px { padding-inline: 1.25rem; @media (min-width: 768px) { padding-inline: 2.5rem; } }
-@utility gradient-luxury { background-image: var(--gradient-luxury); }
-@utility gradient-gold { background-image: var(--gradient-gold); }
-@utility shadow-luxury { box-shadow: var(--shadow-luxury); }
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility container-px {
+  padding-inline: 1.25rem;
+
+  @media (min-width: 768px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility gradient-luxury {
+  background-image: var(--gradient-luxury);
+}
+
+@utility gradient-gold {
+  background-image: var(--gradient-gold);
+}
+
+@utility shadow-luxury {
+  box-shadow: var(--shadow-luxury);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

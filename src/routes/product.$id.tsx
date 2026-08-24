@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star, FileText, Check, ShieldCheck, Truck, RefreshCw, Lock } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
@@ -68,6 +68,12 @@ export const Route = createFileRoute("/product/$id")({
     </div>
   ),
 });
+
+/** A media URL points to a video when served from the videos bucket or has a video extension. */
+function isVideoMedia(url?: string | null): boolean {
+  if (!url) return false;
+  return url.includes("/videos/") || /\.(mp4|webm|mov)$/i.test(url);
+}
 
 function ProductPage() {
   const p = Route.useLoaderData();
@@ -152,9 +158,78 @@ function ProductPage() {
       if (p.gallery_urls && p.gallery_urls.length > 0) list.push(...p.gallery_urls);
     }
 
-    const videos = p.video_urls ?? [];
-    return [...videos, ...Array.from(new Set(list.filter(Boolean)))];
+    // Product images are ALWAYS shown first; videos are pushed to the very end.
+    const images = Array.from(new Set(list.filter(Boolean)));
+    const videos = (p.video_urls ?? []).filter(Boolean);
+    return [...images, ...videos];
   }, [currentColor, activeDimension, p.image_url, p.gallery_urls, p.video_urls]);
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+  // While a programmatic glide (pill click / external index reset) is in flight,
+  // ignore scroll echoes so they don't fight the smooth scroll.
+  const programmaticTarget = useRef<number | null>(null);
+  const dragState = useRef({ isDown: false, startX: 0, startScroll: 0 });
+
+  // Keep the carousel scroll position in sync when the active index is changed
+  // from outside the scroller (e.g. selecting a colour/dimension resets it to 0).
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const target = activeMediaIdx * el.clientWidth;
+    if (Math.abs(el.scrollLeft - target) <= 4) return;
+    programmaticTarget.current = target;
+    el.scrollTo({ left: target, behavior: "smooth" });
+  }, [activeMediaIdx]);
+
+  // Swipe position -> active index (drives badge counter and pill indicators).
+  function handleCarouselScroll() {
+    const el = carouselRef.current;
+    if (!el || el.clientWidth === 0) return;
+
+    if (programmaticTarget.current != null) {
+      if (Math.abs(el.scrollLeft - programmaticTarget.current) <= 4) {
+        programmaticTarget.current = null; // arrived at the requested slide
+      }
+      return;
+    }
+
+    const idx = Math.max(
+      0,
+      Math.min(Math.round(el.scrollLeft / el.clientWidth), Math.max(media.length - 1, 0)),
+    );
+    setActiveMediaIdx((prev) => (prev === idx ? prev : idx));
+  }
+
+  function releaseProgrammaticLock() {
+    programmaticTarget.current = null; // user took over the scroller
+  }
+
+  // Desktop mouse-drag panning (mobile uses native touch swiping).
+  function onCarouselPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    releaseProgrammaticLock();
+    if (e.pointerType !== "mouse") return;
+    if ((e.target as HTMLElement).closest("video")) return; // don't fight video controls
+    const el = carouselRef.current;
+    if (!el) return;
+    dragState.current = { isDown: true, startX: e.clientX, startScroll: el.scrollLeft };
+  }
+
+  function onCarouselPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragState.current;
+    if (!drag.isDown) return;
+    const el = carouselRef.current;
+    if (!el) return;
+    el.scrollLeft = drag.startScroll - (e.clientX - drag.startX);
+  }
+
+  function onCarouselPointerEnd() {
+    dragState.current.isDown = false;
+  }
+
+  // Pill indicator click -> glide to that slide (effect performs the scroll).
+  function goToSlide(i: number) {
+    setActiveMediaIdx(i);
+  }
 
   const currentPrice = activeDimension?.price ?? (p.price != null ? Number(p.price) : null);
 
@@ -187,61 +262,73 @@ function ProductPage() {
       {/* TOP PRODUCT SECTION */}
       <div className="mt-3 md:mt-6 grid items-start gap-4 md:gap-8 grid-cols-1 md:grid-cols-2 lg:gap-12">
 
-        {/* LEFT — GALLERY */}
+        {/* LEFT — SWIPEABLE MEDIA CAROUSEL */}
         <div>
-          <div className="overflow-hidden rounded-2xl md:rounded-[28px] border border-border bg-muted shadow-sm">
-            {media[activeMediaIdx]?.includes("/videos/") ||
-            media[activeMediaIdx]?.match(/\.(mp4|webm|mov)$/i) ? (
-              <video
-                key={media[activeMediaIdx]}
-                src={media[activeMediaIdx]}
-                controls
-                autoPlay
-                muted
-                playsInline
-                className="aspect-[16/10] md:aspect-[4/3] w-full object-contain bg-black"
-              />
-            ) : (
-              <img
-                key={media[activeMediaIdx] || p.image_url}
-                src={media[activeMediaIdx] || p.image_url}
-                alt={p.name}
-                className="aspect-[16/10] md:aspect-[4/3] w-full object-contain bg-white transition-opacity duration-300"
-              />
+          {/* MAIN CAROUSEL FRAME — swipe / drag / scroll horizontally */}
+          <div className="relative overflow-hidden rounded-2xl md:rounded-[28px] border border-border bg-muted shadow-sm">
+            <div
+              ref={carouselRef}
+              onScroll={handleCarouselScroll}
+              onWheel={releaseProgrammaticLock}
+              onTouchStart={releaseProgrammaticLock}
+              onPointerDown={onCarouselPointerDown}
+              onPointerMove={onCarouselPointerMove}
+              onPointerUp={onCarouselPointerEnd}
+              onPointerCancel={onCarouselPointerEnd}
+              onPointerLeave={onCarouselPointerEnd}
+              className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x no-scrollbar md:cursor-grab md:active:cursor-grabbing"
+            >
+              {media.map((g: string, i: number) =>
+                isVideoMedia(g) ? (
+                  <video
+                    key={`${i}-${g}`}
+                    src={g}
+                    controls
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="aspect-square md:aspect-[4/3] w-full flex-shrink-0 snap-center object-contain bg-black"
+                  />
+                ) : (
+                  <img
+                    key={`${i}-${g}`}
+                    src={g}
+                    alt={`${p.name} — media ${i + 1}`}
+                    draggable={false}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    className="aspect-square md:aspect-[4/3] w-full flex-shrink-0 snap-center select-none object-contain bg-white"
+                  />
+                ),
+              )}
+            </div>
+
+            {/* FLOATING COUNTER BADGE (top-right) */}
+            {media.length > 1 && (
+              <div className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[10px] md:text-xs font-semibold tabular-nums text-white shadow-sm backdrop-blur-sm">
+                {Math.min(activeMediaIdx, media.length - 1) + 1} / {media.length}
+              </div>
             )}
           </div>
 
-          {/* HORIZONTAL SCROLLABLE THUMBNAILS */}
+          {/* PILL / DASH INDICATORS (below the image, synced via onScroll) */}
           {media.length > 1 && (
-            <div className="mt-2 md:mt-4 flex gap-2 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-              {media.map((g: string, i: number) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveMediaIdx(i)}
-                  aria-label={`View product media ${i + 1}`}
-                  className={`shrink-0 snap-start overflow-hidden rounded-lg md:rounded-xl border-2 transition-all duration-200 ${
-                    activeMediaIdx === i
-                      ? "border-emerald shadow-sm scale-95"
-                      : "border-transparent opacity-75 hover:opacity-100"
-                  }`}
-                >
-                  {g.includes("/videos/") ||
-                  g.match(/\.(mp4|webm|mov)$/i) ? (
-                    <video
-                      src={g}
-                      className="h-12 w-12 md:h-20 md:w-20 rounded-md object-cover"
-                    />
-                  ) : (
-                    <img
-                      src={g}
-                      alt=""
-                      className="h-12 w-12 md:h-20 md:w-20 rounded-md object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                </button>
-              ))}
+            <div className="mt-2.5 flex items-center justify-center gap-1.5">
+              {media.map((_, i) => {
+                const isActive = Math.min(activeMediaIdx, media.length - 1) === i;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Go to media ${i + 1}`}
+                    onClick={() => goToSlide(i)}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      isActive
+                        ? "w-6 bg-emerald shadow-sm"
+                        : "w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    }`}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
