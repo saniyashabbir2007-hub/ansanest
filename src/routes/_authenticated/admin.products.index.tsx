@@ -36,8 +36,8 @@ function ProductsList() {
 
   const filtered = (data ?? []).filter(
     (p) =>
-      p.name.toLowerCase().includes(q.toLowerCase()) ||
-      p.category.toLowerCase().includes(q.toLowerCase()),
+      p.name?.toLowerCase().includes(q.toLowerCase()) ||
+      p.category?.toLowerCase().includes(q.toLowerCase()),
   );
 
   return (
@@ -100,6 +100,8 @@ function Row({
   onToggleFeatured: () => void;
   onDelete: () => void;
 }) {
+  const galleryCount = p.gallery_urls?.length ?? 0;
+
   return (
     <div className="flex items-center gap-4 p-4">
       <div className="h-16 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -124,8 +126,8 @@ function Row({
         </div>
         <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {p.category}
-          {p.sub_type ? ` · ${p.sub_type}` : ""} · {p.gallery_urls.length} image
-          {p.gallery_urls.length === 1 ? "" : "s"}
+          {p.sub_type ? ` · ${p.sub_type}` : ""} · {galleryCount} image
+          {galleryCount === 1 ? "" : "s"}
         </div>
       </div>
       <div className="hidden w-32 text-right text-sm text-emerald sm:block">

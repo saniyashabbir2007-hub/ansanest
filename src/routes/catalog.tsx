@@ -56,28 +56,25 @@ function matchesFilter(productCategory: string | null | undefined, activeFilter:
 function Catalog() {
   const { search: searchParam } = Route.useSearch();
   const [filter, setFilter] = useState<string>("All");
-
-  /** Live query — initialised from ?search=… (header search) and editable here. */
   const [query, setQuery] = useState(searchParam ?? "");
 
-  // Keep the box in sync when the header search navigates with a new term.
   useEffect(() => {
     setQuery(searchParam ?? "");
   }, [searchParam]);
 
   const activeQuery = useMemo(() => query.trim().toLowerCase(), [query]);
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading: isProductsLoading } = useQuery({
     queryKey: ["products"],
     queryFn: listProducts,
   });
 
-  // Dynamically extract unique categories from products
+  // Extract filters dynamically from the products list safely
   const availableFilters = useMemo(() => {
     const categoryMap = new Map<string, string>();
 
-    products.forEach((product) => {
-      const rawCategory = product.category?.trim();
+    (products as any[]).forEach((product) => {
+      const rawCategory = product?.category?.trim();
       if (rawCategory) {
         const key = rawCategory.toLowerCase();
         if (!categoryMap.has(key)) {
@@ -94,7 +91,7 @@ function Catalog() {
   }, [products]);
 
   const visible = useMemo(() => {
-    return products.filter((product) => {
+    return (products as any[]).filter((product) => {
       if (!matchesFilter(product.category, filter)) return false;
       if (activeQuery) {
         const haystack = [
@@ -116,7 +113,6 @@ function Catalog() {
 
   return (
     <div className="container-px mx-auto max-w-7xl py-10 sm:py-12 md:py-14">
-      {/* HEADER */}
       <div className="mx-auto max-w-3xl text-center">
         <div className="text-[10px] uppercase tracking-[0.28em] text-emerald sm:text-xs">
           ANSA NEST COLLECTION
@@ -132,7 +128,6 @@ function Catalog() {
         </p>
       </div>
 
-      {/* LIVE SEARCH */}
       <div className="mt-8 flex justify-center">
         <div className="relative w-full max-w-xl">
           <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -155,7 +150,6 @@ function Catalog() {
         </div>
       </div>
 
-      {/* FILTERS */}
       <div className="mt-8 overflow-x-auto pb-2">
         <div className="flex min-w-max justify-center gap-2">
           {availableFilters.map((currentFilter) => {
@@ -185,8 +179,7 @@ function Catalog() {
         </div>
       </div>
 
-      {/* PRODUCT COUNT */}
-      {!isLoading && (
+      {!isProductsLoading && (
         <div className="mt-8 flex items-center justify-between border-b border-border pb-4">
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             {filter === "All" ? "All Furniture" : formatCategoryName(filter)}
@@ -198,8 +191,7 @@ function Catalog() {
         </div>
       )}
 
-      {/* PRODUCTS */}
-      {isLoading ? (
+      {isProductsLoading ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
@@ -216,8 +208,7 @@ function Catalog() {
         </div>
       )}
 
-      {/* EMPTY STATE */}
-      {!isLoading && visible.length === 0 && (
+      {!isProductsLoading && visible.length === 0 && (
         <div className="py-24 text-center">
           <h2 className="font-display text-2xl text-foreground">
             Nothing here yet.
