@@ -158,77 +158,49 @@ function ProductPage() {
       if (p.gallery_urls && p.gallery_urls.length > 0) list.push(...p.gallery_urls);
     }
 
-    // Product images are ALWAYS shown first; videos are pushed to the very end.
     const images = Array.from(new Set(list.filter(Boolean)));
     const videos = (p.video_urls ?? []).filter(Boolean);
     return [...images, ...videos];
   }, [currentColor, activeDimension, p.image_url, p.gallery_urls, p.video_urls]);
 
   const carouselRef = useRef<HTMLDivElement>(null);
-  // While a programmatic glide (pill click / external index reset) is in flight,
-  // ignore scroll echoes so they don't fight the smooth scroll.
-  const programmaticTarget = useRef<number | null>(null);
-  const dragState = useRef({ isDown: false, startX: 0, startScroll: 0 });
+  const isUserInteracting = useRef(false);
+  const scrollTimeout = useRef<any>(null);
 
-  // Keep the carousel scroll position in sync when the active index is changed
-  // from outside the scroller (e.g. selecting a colour/dimension resets it to 0).
+  // Sync scroll position when dimension / color selection changes activeMediaIdx externally
   useEffect(() => {
+    if (isUserInteracting.current) return;
     const el = carouselRef.current;
     if (!el) return;
     const target = activeMediaIdx * el.clientWidth;
-    if (Math.abs(el.scrollLeft - target) <= 4) return;
-    programmaticTarget.current = target;
-    el.scrollTo({ left: target, behavior: "smooth" });
+    if (Math.abs(el.scrollLeft - target) > 2) {
+      el.scrollTo({ left: target, behavior: "smooth" });
+    }
   }, [activeMediaIdx]);
 
-  // Swipe position -> active index (drives badge counter and pill indicators).
+  // Sync pagination indicator and pill badge on swipe
   function handleCarouselScroll() {
     const el = carouselRef.current;
     if (!el || el.clientWidth === 0) return;
 
-    if (programmaticTarget.current != null) {
-      if (Math.abs(el.scrollLeft - programmaticTarget.current) <= 4) {
-        programmaticTarget.current = null; // arrived at the requested slide
-      }
-      return;
-    }
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
 
-    const idx = Math.max(
-      0,
-      Math.min(Math.round(el.scrollLeft / el.clientWidth), Math.max(media.length - 1, 0)),
-    );
-    setActiveMediaIdx((prev) => (prev === idx ? prev : idx));
+    scrollTimeout.current = setTimeout(() => {
+      const idx = Math.max(
+        0,
+        Math.min(Math.round(el.scrollLeft / el.clientWidth), media.length - 1),
+      );
+      setActiveMediaIdx(idx);
+      isUserInteracting.current = false;
+    }, 50);
   }
 
-  function releaseProgrammaticLock() {
-    programmaticTarget.current = null; // user took over the scroller
-  }
-
-  // Desktop mouse-drag panning (mobile uses native touch swiping).
-  function onCarouselPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    releaseProgrammaticLock();
-    if (e.pointerType !== "mouse") return;
-    if ((e.target as HTMLElement).closest("video")) return; // don't fight video controls
-    const el = carouselRef.current;
-    if (!el) return;
-    dragState.current = { isDown: true, startX: e.clientX, startScroll: el.scrollLeft };
-  }
-
-  function onCarouselPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragState.current;
-    if (!drag.isDown) return;
-    const el = carouselRef.current;
-    if (!el) return;
-    el.scrollLeft = drag.startScroll - (e.clientX - drag.startX);
-  }
-
-  function onCarouselPointerEnd() {
-    dragState.current.isDown = false;
-  }
-
-  // Pill indicator click -> glide to that slide (effect performs the scroll).
   function goToSlide(i: number) {
+    isUserInteracting.current = false;
     setActiveMediaIdx(i);
+    const el = carouselRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
   }
 
   const currentPrice = activeDimension?.price ?? (p.price != null ? Number(p.price) : null);
@@ -264,55 +236,66 @@ function ProductPage() {
 
         {/* LEFT — SWIPEABLE MEDIA CAROUSEL */}
         <div>
-          {/* MAIN CAROUSEL FRAME — swipe / drag / scroll horizontally */}
           <div className="relative overflow-hidden rounded-2xl md:rounded-[28px] border border-border bg-muted shadow-sm">
             <div
               ref={carouselRef}
               onScroll={handleCarouselScroll}
-              onWheel={releaseProgrammaticLock}
-              onTouchStart={releaseProgrammaticLock}
-              onPointerDown={onCarouselPointerDown}
-              onPointerMove={onCarouselPointerMove}
-              onPointerUp={onCarouselPointerEnd}
-              onPointerCancel={onCarouselPointerEnd}
-              onPointerLeave={onCarouselPointerEnd}
-              className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth touch-pan-x no-scrollbar md:cursor-grab md:active:cursor-grabbing"
+              onTouchStart={() => {
+                isUserInteracting.current = true;
+              }}
+              onPointerDown={() => {
+                isUserInteracting.current = true;
+              }}
+              className="flex w-full overflow-x-auto scroll-smooth snap-x snap-mandatory touch-pan-x select-none no-scrollbar"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
               {media.map((g: string, i: number) =>
                 isVideoMedia(g) ? (
-                  <video
+                  <div
                     key={`${i}-${g}`}
-                    src={g}
-                    controls
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="aspect-square md:aspect-[4/3] w-full flex-shrink-0 snap-center object-contain bg-black"
-                  />
+                    className="w-full shrink-0 snap-center snap-always aspect-square md:aspect-[4/3] flex items-center justify-center bg-black"
+                  >
+                    <video
+                      src={g}
+                      controls
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
                 ) : (
-                  <img
+                  <div
                     key={`${i}-${g}`}
-                    src={g}
-                    alt={`${p.name} — media ${i + 1}`}
-                    draggable={false}
-                    loading={i === 0 ? "eager" : "lazy"}
-                    className="aspect-square md:aspect-[4/3] w-full flex-shrink-0 snap-center select-none object-contain bg-white"
-                  />
+                    className="w-full shrink-0 snap-center snap-always aspect-square md:aspect-[4/3] flex items-center justify-center bg-white"
+                  >
+                    <img
+                      src={g}
+                      alt={`${p.name} — media ${i + 1}`}
+                      draggable={false}
+                      loading={i === 0 ? "eager" : "lazy"}
+                      className="h-full w-full object-contain select-none pointer-events-none"
+                    />
+                  </div>
                 ),
               )}
             </div>
 
-            {/* FLOATING COUNTER BADGE (top-right) */}
+            {/* FLOATING COUNTER BADGE */}
             {media.length > 1 && (
-              <div className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[10px] md:text-xs font-semibold tabular-nums text-white shadow-sm backdrop-blur-sm">
+              <div className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] md:text-xs font-semibold tabular-nums text-white shadow-sm backdrop-blur-sm">
                 {Math.min(activeMediaIdx, media.length - 1) + 1} / {media.length}
               </div>
             )}
           </div>
 
-          {/* PILL / DASH INDICATORS (below the image, synced via onScroll) */}
+          {/* PILL / DASH INDICATORS */}
           {media.length > 1 && (
-            <div className="mt-2.5 flex items-center justify-center gap-1.5">
+            <div className="mt-3 flex items-center justify-center gap-1.5">
               {media.map((_, i) => {
                 const isActive = Math.min(activeMediaIdx, media.length - 1) === i;
                 return (
@@ -321,10 +304,10 @@ function ProductPage() {
                     type="button"
                     aria-label={`Go to media ${i + 1}`}
                     onClick={() => goToSlide(i)}
-                    className={`h-1 rounded-full transition-all duration-300 ${
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
                       isActive
                         ? "w-6 bg-emerald shadow-sm"
-                        : "w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                     }`}
                   />
                 );
@@ -591,7 +574,6 @@ function ProductPage() {
                 )}
               </div>
 
-              {/* SPECIFICATION CARD IN SIDEBAR */}
               <div className="rounded-xl border border-border bg-card p-4 text-xs">
                 <h4 className="font-semibold text-foreground mb-3 text-sm">Specifications</h4>
                 <div className="space-y-2.5">
