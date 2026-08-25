@@ -406,13 +406,16 @@ function ProductDetailPage() {
               {formatRupeePrice(displayPrice)}
             </div>
 
-            {/* 1. SELECT SIZE / DIMENSIONS */}
+            {/* 1. SELECT SIZE / DIMENSIONS - COMPACT & HORIZONTAL SCROLL */}
             {dimensionVariants.length > 0 && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
                   1. Select Size / Dimensions:
                 </div>
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div
+                  className="mt-2 flex gap-2 overflow-x-auto pb-1.5 scroll-smooth"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
                   {dimensionVariants.map((dim: any, idx: number) => {
                     const isSelected = selectedDimensionIdx === idx;
                     return (
@@ -424,24 +427,24 @@ function ProductDetailPage() {
                           setSelectedVariantIdx(0);
                           setActiveSlide(0);
                         }}
-                        className={`flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all cursor-pointer ${
+                        className={`flex min-w-[170px] max-w-[210px] flex-shrink-0 flex-col justify-between rounded-xl border p-2 text-left transition-all cursor-pointer ${
                           isSelected
-                            ? "border-emerald bg-emerald/5 ring-1 ring-emerald/30"
+                            ? "border-emerald bg-emerald/5 ring-1 ring-emerald/30 shadow-2xs"
                             : "border-border bg-card hover:border-foreground/40"
                         }`}
                       >
                         <div>
-                          <div className="text-xs font-semibold text-foreground">
+                          <div className="truncate text-[11px] font-semibold text-foreground">
                             {dim.name || dim.label || `Size ${idx + 1}`}
                           </div>
                           {dim.dimensions && (
-                            <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2 leading-snug">
+                            <div className="mt-0.5 line-clamp-2 text-[9.5px] leading-tight text-muted-foreground">
                               {dim.dimensions}
                             </div>
                           )}
                         </div>
                         {dim.price && (
-                          <div className="mt-2 text-xs font-bold text-foreground">
+                          <div className="mt-1.5 font-sans text-[11px] font-bold text-foreground">
                             {formatRupeePrice(dim.price)}
                           </div>
                         )}
@@ -516,7 +519,7 @@ function ProductDetailPage() {
               </a>
             </div>
 
-            {/* Trust Badges with 1-2 Years Warranty */}
+            {/* Trust Badges */}
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-3.5 sm:grid-cols-4">
               <div className="flex items-start gap-1.5">
                 <Truck className="h-3.5 w-3.5 text-emerald flex-shrink-0 mt-0.5" />
