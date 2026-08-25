@@ -16,7 +16,7 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const offset = direction === "left" ? -220 : 220;
+      const offset = direction === "left" ? -200 : 200;
       scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
@@ -24,16 +24,16 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
   if (!items || items.length === 0) return null;
 
   return (
-    <section className={`py-2 sm:py-3.5 ${muted ? "bg-muted/20" : ""}`}>
+    <section className={`py-1.5 sm:py-2.5 ${muted ? "bg-muted/20" : ""}`}>
       <div className="container-px mx-auto max-w-7xl">
-        <div className="mb-1.5 flex items-end justify-between sm:mb-2.5">
+        <div className="mb-1 flex items-end justify-between sm:mb-2">
           <div>
             {eyebrow && (
-              <span className="text-[8px] uppercase tracking-[0.2em] text-emerald font-semibold sm:text-[9px]">
+              <span className="text-[7.5px] uppercase tracking-[0.2em] text-emerald font-semibold sm:text-[8.5px]">
                 {eyebrow}
               </span>
             )}
-            <h2 className="font-display text-sm font-semibold text-foreground sm:text-lg md:text-xl leading-tight">
+            <h2 className="font-display text-xs font-semibold text-foreground sm:text-sm md:text-base leading-tight">
               {title}
             </h2>
           </div>
@@ -43,7 +43,7 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
               to="/catalog"
               className="hidden items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
-              View all <ArrowRight className="h-3 w-3" />
+              View all <ArrowRight className="h-2.5 w-2.5" />
             </Link>
             <button
               type="button"
@@ -64,16 +64,16 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
           </div>
         </div>
 
-        {/* Compact Product Cards */}
+        {/* Compact Card Stream */}
         <div
           ref={scrollRef}
-          className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 scroll-smooth"
+          className="flex gap-2 sm:gap-2.5 overflow-x-auto pb-1 scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {items.map((product) => (
             <div
               key={product.id}
-              className="w-[44vw] max-w-[165px] flex-shrink-0 sm:w-44 sm:max-w-none md:w-52"
+              className="w-[36vw] max-w-[135px] flex-shrink-0 sm:w-36 sm:max-w-none md:w-44"
             >
               <ProductCard p={product} />
             </div>

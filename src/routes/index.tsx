@@ -12,18 +12,18 @@ import { CarouselSection } from "@/components/site/Home/CarouselSection";
 const CATEGORY_ROTATION_MS = 60_000;
 
 const ADMIN_CATEGORIES_CONFIG = [
-  { id: 1, label: "Sofa", match: ["sofa", "couches", "seating"] },
-  { id: 2, label: "Sofa Cum Bed", match: ["sofa cum bed", "cum bed", "daybed"] },
-  { id: 3, label: "Accent Chairs", match: ["accent chairs", "accent chair"] },
-  { id: 4, label: "Cloud Curved Sofa", match: ["cloud curved sofa", "curved sofa", "cloud curved"] },
-  { id: 5, label: "Chair", match: ["chair", "lounge chair", "armchair"] },
-  { id: 6, label: "Bubble Sofa / Cloud Sofa", match: ["bubble sofa", "cloud sofa", "bubble sofa / cloud sofa"] },
-  { id: 7, label: "Ottoman Storage", match: ["ottoman storage", "storage ottoman"] },
-  { id: 8, label: "Ottomans & Benches", match: ["ottomans & benches", "ottomans", "benches", "pouf"] },
-  { id: 9, label: "Living Room Furniture", match: ["living room furniture", "living room"] },
-  { id: 10, label: "Sofas & Seating", match: ["sofas & seating", "sectional", "sectionals"] },
-  { id: 11, label: "Chesterfield Sofas", match: ["chesterfield sofas", "chesterfield"] },
-  { id: 12, label: "Beds", match: ["beds", "bed", "upholstered bed", "storage bed"] },
+  { id: 1, label: "Sofa", filterQuery: "sofa", match: ["sofa", "couches", "seating"] },
+  { id: 2, label: "Sofa Cum Bed", filterQuery: "sofa cum bed", match: ["sofa cum bed", "cum bed", "daybed"] },
+  { id: 3, label: "Accent Chairs", filterQuery: "accent chairs", match: ["accent chairs", "accent chair"] },
+  { id: 4, label: "Cloud Curved Sofa", filterQuery: "cloud curved sofa", match: ["cloud curved sofa", "curved sofa", "cloud curved"] },
+  { id: 5, label: "Chair", filterQuery: "chair", match: ["chair", "lounge chair", "armchair"] },
+  { id: 6, label: "Bubble Sofa / Cloud Sofa", filterQuery: "bubble sofa / cloud sofa", match: ["bubble sofa", "cloud sofa", "bubble sofa / cloud sofa"] },
+  { id: 7, label: "Ottoman Storage", filterQuery: "ottoman storage", match: ["ottoman storage", "storage ottoman"] },
+  { id: 8, label: "Ottomans & Benches", filterQuery: "ottomans & benches", match: ["ottomans & benches", "ottomans", "benches", "pouf"] },
+  { id: 9, label: "Living Room Furniture", filterQuery: "living room furniture", match: ["living room furniture", "living room"] },
+  { id: 10, label: "Sofas & Seating", filterQuery: "sofas & seating", match: ["sofas & seating", "sectional", "sectionals"] },
+  { id: 11, label: "Chesterfield Sofas", filterQuery: "chesterfield sofas", match: ["chesterfield sofas", "chesterfield"] },
+  { id: 12, label: "Beds", filterQuery: "beds", match: ["beds", "bed", "upholstered bed", "storage bed"] },
 ];
 
 export const Route = createFileRoute("/")({
@@ -86,7 +86,7 @@ function Index() {
 
   return (
     <div>
-      {/* 1. FULL-WIDTH MOBILE COMPACT HERO */}
+      {/* 1. HERO BANNER */}
       <DynamicHero
         products={heroProducts as Product[]}
         isLoading={isInitialLoading}
@@ -95,7 +95,7 @@ function Index() {
       {/* 2. CATEGORY QUICK SELECTOR */}
       <CategoryQuickStrip products={products as Product[]} />
 
-      {/* 3. COMPACT RECOMMENDED */}
+      {/* 3. RECOMMENDED */}
       <CarouselSection
         eyebrow="Recommended"
         title="Curated for your home"
@@ -194,6 +194,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
       return {
         id: catConfig.id,
         label: catConfig.label,
+        filterQuery: catConfig.filterQuery,
         images: images,
       };
     });
@@ -209,7 +210,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const offset = direction === "left" ? -240 : 240;
+      const offset = direction === "left" ? -260 : 260;
       scrollContainerRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
@@ -226,9 +227,10 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           <ChevronLeft className="h-3 w-3" />
         </button>
 
+        {/* Category Bubbles */}
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-3 overflow-x-auto scroll-smooth px-1 py-0.5 md:gap-5 md:px-6"
+          className="flex items-center gap-3.5 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-6"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {categoriesList.map((cat) => {
@@ -239,9 +241,10 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
               <Link
                 key={cat.id}
                 to="/catalog"
+                search={{ category: cat.filterQuery } as any}
                 className="group flex flex-col items-center flex-shrink-0 cursor-pointer text-center"
               >
-                <div className="relative h-14 w-14 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-16 sm:w-16 md:h-18 md:w-18">
+                <div className="relative h-15 w-15 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-16 sm:w-16 md:h-18 md:w-18">
                   {activeImage ? (
                     <img
                       key={activeImage}
@@ -258,7 +261,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                     </div>
                   )}
                 </div>
-                <span className="mt-1 max-w-[76px] truncate text-[10.5px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
+                <span className="mt-1.5 max-w-[80px] truncate text-[11px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
                   {cat.label}
                 </span>
               </Link>
@@ -302,25 +305,25 @@ function DynamicHero({
 
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="container-px mx-auto grid max-w-7xl items-center gap-2.5 py-1.5 sm:gap-3.5 sm:py-2 md:grid-cols-[1.05fr_1fr] md:gap-5 md:py-3">
+      <div className="container-px mx-auto grid max-w-7xl items-center gap-2.5 py-2 sm:gap-4 sm:py-2.5 md:grid-cols-[1.1fr_1fr] md:gap-6 md:py-3.5">
         <div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.2em] text-emerald sm:text-[9px]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] text-emerald sm:text-[10px]">
             <Sparkles className="h-2.5 w-2.5" />
             WELCOME TO <span className="notranslate" translate="no">ANSA NEST</span>
           </div>
 
-          <h1 className="mt-1 max-w-lg font-display text-base sm:text-lg md:text-2xl leading-tight text-balance text-foreground">
+          <h1 className="mt-1.5 max-w-lg font-display text-lg sm:text-2xl md:text-3xl lg:text-4xl leading-tight text-balance text-foreground">
             Timeless <em className="italic text-emerald">Furniture</em> for modern living.
           </h1>
 
-          <p className="mt-0.5 max-w-md text-[10.5px] leading-relaxed text-muted-foreground sm:text-xs">
+          <p className="mt-1 max-w-md text-[11.5px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
             Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed for comfort into every home.
           </p>
 
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1 text-[10.5px] font-medium text-background transition-opacity hover:opacity-90 sm:px-3.5 sm:py-1.5 sm:text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2"
             >
               Explore Catalog
               <ArrowRight className="h-3 w-3" />
@@ -328,14 +331,14 @@ function DynamicHero({
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-1 rounded-full border border-foreground/20 px-3 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-3.5 sm:py-1.5 sm:text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2"
             >
               Book a Showroom Visit
             </Link>
           </div>
         </div>
 
-        {/* Full-width responsive hero image */}
+        {/* Hero Image */}
         <div className="relative w-full">
           <div className="relative mx-auto aspect-[16/9] w-full max-w-full overflow-hidden rounded-xl shadow-md sm:aspect-[16/10] md:aspect-[4/3] bg-muted">
             {isLoading && !activeProduct && (
