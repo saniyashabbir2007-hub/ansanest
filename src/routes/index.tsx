@@ -86,16 +86,16 @@ function Index() {
 
   return (
     <div>
-      {/* 1. COMPACT HERO */}
+      {/* 1. FULL-WIDTH MOBILE COMPACT HERO */}
       <DynamicHero
         products={heroProducts as Product[]}
         isLoading={isInitialLoading}
       />
 
-      {/* 2. PROMINENT CATEGORY CIRCLES */}
+      {/* 2. CATEGORY QUICK SELECTOR */}
       <CategoryQuickStrip products={products as Product[]} />
 
-      {/* 3. RECOMMENDED (Curated for your home) */}
+      {/* 3. COMPACT RECOMMENDED */}
       <CarouselSection
         eyebrow="Recommended"
         title="Curated for your home"
@@ -125,7 +125,7 @@ function Index() {
         muted
       />
 
-      {/* 7. 6-FEATURE TRUST BAR */}
+      {/* 7. TRUST BAR */}
       <TrustBar />
 
       {/* 8. TESTIMONIALS */}
@@ -209,27 +209,26 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const offset = direction === "left" ? -260 : 260;
+      const offset = direction === "left" ? -240 : 240;
       scrollContainerRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
 
   return (
     <section className="container-px mx-auto max-w-7xl pt-0 pb-2">
-      <div className="relative rounded-2xl border border-border/70 bg-card/70 p-2.5 shadow-xs md:p-3.5">
+      <div className="relative rounded-2xl border border-border/70 bg-card/70 p-2 shadow-2xs md:p-3">
         <button
           type="button"
           onClick={() => scroll("left")}
           aria-label="Scroll left"
-          className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-transform hover:scale-105"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-2xs text-foreground transition-transform hover:scale-105"
         >
           <ChevronLeft className="h-3 w-3" />
         </button>
 
-        {/* Larger Circles: h-16 w-16 on mobile (md:h-20 md:w-20) */}
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-3.5 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-6"
+          className="flex items-center gap-3 overflow-x-auto scroll-smooth px-1 py-0.5 md:gap-5 md:px-6"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {categoriesList.map((cat) => {
@@ -242,7 +241,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                 to="/catalog"
                 className="group flex flex-col items-center flex-shrink-0 cursor-pointer text-center"
               >
-                <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-18 sm:w-18 md:h-20 md:w-20">
+                <div className="relative h-14 w-14 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 shadow-2xs transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-16 sm:w-16 md:h-18 md:w-18">
                   {activeImage ? (
                     <img
                       key={activeImage}
@@ -259,7 +258,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                     </div>
                   )}
                 </div>
-                <span className="mt-1.5 max-w-[80px] truncate text-[11px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
+                <span className="mt-1 max-w-[76px] truncate text-[10.5px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
                   {cat.label}
                 </span>
               </Link>
@@ -271,7 +270,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           type="button"
           onClick={() => scroll("right")}
           aria-label="Scroll right"
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-transform hover:scale-105"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-2xs text-foreground transition-transform hover:scale-105"
         >
           <ChevronRight className="h-3 w-3" />
         </button>
@@ -303,25 +302,25 @@ function DynamicHero({
 
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="container-px mx-auto grid max-w-7xl items-center gap-2.5 py-2 sm:gap-4 sm:py-2.5 md:grid-cols-[1.1fr_1fr] md:gap-6 md:py-3.5">
+      <div className="container-px mx-auto grid max-w-7xl items-center gap-2.5 py-1.5 sm:gap-3.5 sm:py-2 md:grid-cols-[1.05fr_1fr] md:gap-5 md:py-3">
         <div>
-          <div className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8.5px] uppercase tracking-[0.2em] text-emerald sm:text-[9.5px]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.2em] text-emerald sm:text-[9px]">
             <Sparkles className="h-2.5 w-2.5" />
             WELCOME TO <span className="notranslate" translate="no">ANSA NEST</span>
           </div>
 
-          <h1 className="mt-1 max-w-lg font-display text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight text-balance text-foreground">
+          <h1 className="mt-1 max-w-lg font-display text-base sm:text-lg md:text-2xl leading-tight text-balance text-foreground">
             Timeless <em className="italic text-emerald">Furniture</em> for modern living.
           </h1>
 
-          <p className="mt-1 max-w-md text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+          <p className="mt-0.5 max-w-md text-[10.5px] leading-relaxed text-muted-foreground sm:text-xs">
             Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed for comfort into every home.
           </p>
 
-          <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-2.5">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-xs"
+              className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1 text-[10.5px] font-medium text-background transition-opacity hover:opacity-90 sm:px-3.5 sm:py-1.5 sm:text-xs"
             >
               Explore Catalog
               <ArrowRight className="h-3 w-3" />
@@ -329,15 +328,16 @@ function DynamicHero({
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-1 rounded-full border border-foreground/20 px-3 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2 sm:text-xs"
+              className="inline-flex items-center gap-1 rounded-full border border-foreground/20 px-3 py-1 text-[10.5px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-3.5 sm:py-1.5 sm:text-xs"
             >
               Book a Showroom Visit
             </Link>
           </div>
         </div>
 
-        <div className="relative">
-          <div className="relative mx-auto aspect-[16/10] w-full max-w-[320px] sm:max-w-[380px] overflow-hidden rounded-xl shadow-md md:aspect-[4/3] bg-muted">
+        {/* Full-width responsive hero image */}
+        <div className="relative w-full">
+          <div className="relative mx-auto aspect-[16/9] w-full max-w-full overflow-hidden rounded-xl shadow-md sm:aspect-[16/10] md:aspect-[4/3] bg-muted">
             {isLoading && !activeProduct && (
               <div className="absolute inset-0 animate-pulse bg-muted" />
             )}
@@ -362,7 +362,7 @@ function DynamicHero({
                 <span
                   key={product.id || index}
                   className={`h-1 rounded-full transition-all duration-500 ${
-                    index === activeIndex ? "w-3.5 bg-white" : "w-1 bg-white/50"
+                    index === activeIndex ? "w-3 bg-white" : "w-1 bg-white/50"
                   }`}
                 />
               ))}
