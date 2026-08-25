@@ -113,34 +113,33 @@
   h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
-@utility text-balance {
-  text-wrap: balance;
+@utility text-balance { text-wrap: balance; }
+@utility container-px { padding-inline: 1.25rem; @media (min-width: 768px) { padding-inline: 2.5rem; } }
+@utility gradient-luxury { background-image: var(--gradient-luxury); }
+@utility gradient-gold { background-image: var(--gradient-gold); }
+@utility shadow-luxury { box-shadow: var(--shadow-luxury); }
+@utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+
+/* Hide Google Translate top banner, attribution and floating gadgets */
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-te-gadget {
+  display: none !important;
+  visibility: hidden !important;
 }
 
-@utility container-px {
-  padding-inline: 1.25rem;
-
-  @media (min-width: 768px) {
-    padding-inline: 2.5rem;
-  }
+/* Prevent Google Translate from injecting body offset */
+body {
+  top: 0px !important;
+  position: static !important;
 }
 
-@utility gradient-luxury {
-  background-image: var(--gradient-luxury);
-}
-
-@utility gradient-gold {
-  background-image: var(--gradient-gold);
-}
-
-@utility shadow-luxury {
-  box-shadow: var(--shadow-luxury);
-}
-
-@utility no-scrollbar {
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+/* Hide highlight overlays injected by Google Translate */
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
 }

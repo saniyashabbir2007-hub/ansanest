@@ -1,130 +1,67 @@
-import {
-  Truck,
-  ShieldCheck,
-  Sofa,
-  Headphones,
-} from "lucide-react";
+import { Award, Palette, Truck, Wrench, Headphones, Sparkles } from "lucide-react";
 
-const items = [
+const features = [
+  {
+    icon: Award,
+    title: "Premium Quality",
+    subtitle: "Finest materials & craftsmanship",
+  },
+  {
+    icon: Palette,
+    title: "Customizable",
+    subtitle: "Personalize size, fabric & color",
+  },
   {
     icon: Truck,
     title: "Pan India Delivery",
-    description: "Fast & Secure Shipping",
+    subtitle: "Fast & secure shipping across India",
   },
   {
-    icon: ShieldCheck,
-    title: "Quality You Can Trust",
-    description: "Premium Craftsmanship",
-  },
-  {
-    icon: Sofa,
-    title: "Designed for Maximum Comfort",
-    description: "Built for Everyday Living",
+    icon: Wrench,
+    title: "Old Sofa Repair Available",
+    subtitle: "Expert restoration & reupholstery",
   },
   {
     icon: Headphones,
-    title: "Dedicated Customer Support",
-    description: "We're Here to Help",
+    title: "Dedicated Support",
+    subtitle: "We're here to help you always",
+  },
+  {
+    icon: Sparkles,
+    title: "Maximum Comfort",
+    subtitle: "Built for everyday living",
   },
 ];
 
 export function TrustBar() {
   return (
-    <section className="border-y border-border bg-card/40">
-      <div className="container-px mx-auto max-w-7xl py-5 sm:py-7 lg:py-10">
+    <section className="container-px mx-auto max-w-7xl py-12 md:py-16">
+      <div className="text-center mb-8">
+        <span className="text-xs uppercase tracking-[0.25em] text-emerald font-semibold">
+          Why Choose <span className="notranslate" translate="no">Ansa Nest</span>?
+        </span>
+      </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4 lg:gap-5">
-
-          {items.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <div
-                key={item.title}
-                className="
-                  group
-                  rounded-xl
-                  border
-                  border-border
-                  bg-background
-                  p-3
-
-                  sm:rounded-2xl
-                  sm:p-4
-
-                  lg:p-6
-                "
-              >
-                <div
-                  className="
-                    flex
-                    h-8
-                    w-8
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-emerald/10
-                    text-emerald
-
-                    sm:h-9
-                    sm:w-9
-
-                    lg:h-14
-                    lg:w-14
-                  "
-                >
-                  <Icon
-                    className="
-                      h-4
-                      w-4
-
-                      sm:h-5
-                      sm:w-5
-
-                      lg:h-7
-                      lg:w-7
-                    "
-                  />
-                </div>
-
-                <h3
-                  className="
-                    mt-2
-                    text-[11px]
-                    font-semibold
-                    leading-snug
-                    text-foreground
-
-                    sm:mt-3
-                    sm:text-sm
-
-                    lg:mt-5
-                    lg:text-base
-                  "
-                >
-                  {item.title}
-                </h3>
-
-                <p
-                  className="
-                    mt-1
-                    text-[9px]
-                    leading-relaxed
-                    text-muted-foreground
-
-                    sm:text-xs
-
-                    lg:mt-2
-                    lg:text-sm
-                  "
-                >
-                  {item.description}
-                </p>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6">
+        {features.map((feature, index) => {
+          const Icon = feature.icon;
+          return (
+            <div
+              key={index}
+              className="group flex flex-col items-center rounded-2xl border border-border/80 bg-card p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-md"
+            >
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald/10 text-emerald transition-colors group-hover:bg-foreground group-hover:text-background">
+                <Icon className="h-5 w-5" />
               </div>
-            );
-          })}
-
-        </div>
+              <h3 className="font-display text-sm font-semibold text-foreground">
+                {feature.title}
+              </h3>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                {feature.subtitle}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
