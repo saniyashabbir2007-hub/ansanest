@@ -35,7 +35,11 @@ function extractImagesFromObj(obj: any): string[] {
   const found: string[] = [];
 
   const addIfStr = (val: any) => {
-    if (typeof val === "string" && val.trim().length > 0 && (val.startsWith("http") || val.startsWith("/") || val.startsWith("data:image"))) {
+    if (
+      typeof val === "string" &&
+      val.trim().length > 0 &&
+      (val.startsWith("http") || val.startsWith("/") || val.startsWith("data:image"))
+    ) {
       found.push(val.trim());
     }
   };
@@ -127,18 +131,24 @@ function ProductDetailPage() {
       activeDimension?.color_options;
 
     if (Array.isArray(nested) && nested.length > 0) {
-      return nested.filter((v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0));
+      return nested.filter(
+        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
+      );
     }
 
     const root =
       product.color_variants ||
       product.variants ||
       (Array.isArray(product.colors) && typeof product.colors[0] === "object" ? product.colors : null) ||
-      (Array.isArray(product.color_options) && typeof product.color_options[0] === "object" ? product.color_options : null) ||
+      (Array.isArray(product.color_options) && typeof product.color_options[0] === "object"
+        ? product.color_options
+        : null) ||
       [];
 
     if (Array.isArray(root) && root.length > 0) {
-      return root.filter((v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0));
+      return root.filter(
+        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
+      );
     }
 
     return [];
@@ -185,7 +195,9 @@ function ProductDetailPage() {
       images.push(...rootImgs);
     }
 
-    const uniqueUrls = Array.from(new Set(images.filter((u) => typeof u === "string" && u.trim().length > 0)));
+    const uniqueUrls = Array.from(
+      new Set(images.filter((u) => typeof u === "string" && u.trim().length > 0))
+    );
 
     const distinct: MediaItem[] = uniqueUrls.map((url) => ({
       type: "image",
@@ -213,7 +225,8 @@ function ProductDetailPage() {
 
   const displayPrice = useMemo(() => {
     if (activeDimension?.price) return activeDimension.price;
-    if (activeColorVariants[selectedVariantIdx]?.price) return activeColorVariants[selectedVariantIdx].price;
+    if (activeColorVariants[selectedVariantIdx]?.price)
+      return activeColorVariants[selectedVariantIdx].price;
     return product.price;
   }, [activeDimension, activeColorVariants, selectedVariantIdx, product.price]);
 
@@ -503,7 +516,7 @@ function ProductDetailPage() {
               </a>
             </div>
 
-            {/* Trust Badges */}
+            {/* Trust Badges with 1-2 Years Warranty */}
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-3.5 sm:grid-cols-4">
               <div className="flex items-start gap-1.5">
                 <Truck className="h-3.5 w-3.5 text-emerald flex-shrink-0 mt-0.5" />
@@ -522,7 +535,7 @@ function ProductDetailPage() {
               <div className="flex items-start gap-1.5">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[10.5px] font-semibold text-foreground">5-8 Years Warranty</div>
+                  <div className="text-[10.5px] font-semibold text-foreground">1-2 Years Warranty</div>
                   <div className="text-[9.5px] text-muted-foreground">On Frame</div>
                 </div>
               </div>
@@ -612,7 +625,9 @@ function ProductDetailPage() {
                     <div>
                       <span className="font-semibold text-foreground">Material: </span>
                       <span className="text-muted-foreground">
-                        {product.material || product.fabric || "Premium upholstery fabric with high-resilience comfort foam and solid internal wood framing."}
+                        {product.material ||
+                          product.fabric ||
+                          "Premium upholstery fabric with high-resilience comfort foam and solid internal wood framing."}
                       </span>
                     </div>
                     {currentDimensionsText && (
@@ -627,7 +642,9 @@ function ProductDetailPage() {
                     </div>
                     <div>
                       <span className="font-semibold text-foreground">Warranty: </span>
-                      <span className="text-muted-foreground">{product.warranty || "5-8 Years on Frame"}</span>
+                      <span className="text-muted-foreground">
+                        {product.warranty || "1-2 Years on Frame"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -639,7 +656,8 @@ function ProductDetailPage() {
                 <div>
                   <span className="font-semibold text-foreground">Material & Frame:</span>
                   <p className="mt-1 text-muted-foreground">
-                    {product.material || "Reinforced solid timber internal framing, high-resilience foam, luxury upholstery fabric."}
+                    {product.material ||
+                      "Reinforced solid timber internal framing, high-resilience foam, luxury upholstery fabric."}
                   </p>
                 </div>
                 {currentDimensionsText && (

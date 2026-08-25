@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { BUSINESS } from "@/lib/business";
 
 export const Route = createFileRoute("/catalog")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { category?: string; q?: string } => {
     return {
       category: typeof search.category === "string" ? search.category : undefined,
       q: typeof search.q === "string" ? search.q : undefined,
@@ -33,7 +33,7 @@ function normalize(str?: string | null): string {
 
 function CatalogPage() {
   const loaderData = Route.useLoaderData();
-  const searchParams = useSearch({ from: "/catalog" });
+  const searchParams = useSearch({ from: "/catalog" }) as { category?: string; q?: string };
 
   const { data: products = loaderData?.products ?? [] } = useQuery({
     queryKey: ["products"],
@@ -72,18 +72,17 @@ function CatalogPage() {
 
   // Selected Category State
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [searchQuery, setSearchQuery] = useState<string>(searchParams.q || "");
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams?.q || "");
 
   // Sync selectedCategory whenever URL search query changes (e.g. from homepage click)
   useEffect(() => {
-    if (searchParams.category) {
+    if (searchParams?.category) {
       const targetNorm = normalize(searchParams.category);
       const matched = categoryPills.find((pill) => normalize(pill) === targetNorm);
 
       if (matched) {
         setSelectedCategory(matched);
       } else {
-        // Fallback matching
         const partialMatch = categoryPills.find(
           (pill) => normalize(pill).includes(targetNorm) || targetNorm.includes(normalize(pill))
         );
@@ -92,7 +91,7 @@ function CatalogPage() {
     } else {
       setSelectedCategory("All");
     }
-  }, [searchParams.category, categoryPills]);
+  }, [searchParams?.category, categoryPills]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
