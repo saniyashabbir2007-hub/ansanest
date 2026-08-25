@@ -11,19 +11,20 @@ import { CarouselSection } from "@/components/site/Home/CarouselSection";
 
 const CATEGORY_ROTATION_MS = 60_000;
 
+// Match exact category pill labels as shown in the Catalog page
 const ADMIN_CATEGORIES_CONFIG = [
-  { id: 1, label: "Sofa", filterQuery: "sofa", match: ["sofa", "couches", "seating"] },
-  { id: 2, label: "Sofa Cum Bed", filterQuery: "sofa cum bed", match: ["sofa cum bed", "cum bed", "daybed"] },
-  { id: 3, label: "Accent Chairs", filterQuery: "accent chairs", match: ["accent chairs", "accent chair"] },
-  { id: 4, label: "Cloud Curved Sofa", filterQuery: "cloud curved sofa", match: ["cloud curved sofa", "curved sofa", "cloud curved"] },
-  { id: 5, label: "Chair", filterQuery: "chair", match: ["chair", "lounge chair", "armchair"] },
-  { id: 6, label: "Bubble Sofa / Cloud Sofa", filterQuery: "bubble sofa / cloud sofa", match: ["bubble sofa", "cloud sofa", "bubble sofa / cloud sofa"] },
-  { id: 7, label: "Ottoman Storage", filterQuery: "ottoman storage", match: ["ottoman storage", "storage ottoman"] },
-  { id: 8, label: "Ottomans & Benches", filterQuery: "ottomans & benches", match: ["ottomans & benches", "ottomans", "benches", "pouf"] },
-  { id: 9, label: "Living Room Furniture", filterQuery: "living room furniture", match: ["living room furniture", "living room"] },
-  { id: 10, label: "Sofas & Seating", filterQuery: "sofas & seating", match: ["sofas & seating", "sectional", "sectionals"] },
-  { id: 11, label: "Chesterfield Sofas", filterQuery: "chesterfield sofas", match: ["chesterfield sofas", "chesterfield"] },
-  { id: 12, label: "Beds", filterQuery: "beds", match: ["beds", "bed", "upholstered bed", "storage bed"] },
+  { id: 1, label: "Sofa", filterQuery: "Sofa", match: ["sofa", "couches", "seating"] },
+  { id: 2, label: "Sofa Cum Bed", filterQuery: "Sofa Cum Bed", match: ["sofa cum bed", "cum bed", "daybed"] },
+  { id: 3, label: "Accent Chairs", filterQuery: "Accent Chairs", match: ["accent chairs", "accent chair"] },
+  { id: 4, label: "Cloud Curved Sofa", filterQuery: "Cloud Curved Sofa", match: ["cloud curved sofa", "curved sofa", "cloud curved"] },
+  { id: 5, label: "Chair", filterQuery: "Chair", match: ["chair", "lounge chair", "armchair"] },
+  { id: 6, label: "Bubble Sofa / Cloud Sofa", filterQuery: "Bubble Sofa / Cloud Sofa", match: ["bubble sofa", "cloud sofa", "bubble sofa / cloud sofa"] },
+  { id: 7, label: "Ottoman Storage", filterQuery: "Ottoman Storage", match: ["ottoman storage", "storage ottoman"] },
+  { id: 8, label: "Ottomans & Benches", filterQuery: "Ottomans & Benches", match: ["ottomans & benches", "ottomans", "benches", "pouf"] },
+  { id: 9, label: "Living Room Furniture", filterQuery: "Living Room Furniture", match: ["living room furniture", "living room"] },
+  { id: 10, label: "Sofas & Seating", filterQuery: "Sofas & Seating", match: ["sofas & seating", "sectional", "sectionals"] },
+  { id: 11, label: "Chesterfield Sofas", filterQuery: "Chesterfield Sofas", match: ["chesterfield sofas", "chesterfield"] },
+  { id: 12, label: "Beds", filterQuery: "Beds", match: ["beds", "bed", "upholstered bed", "storage bed"] },
 ];
 
 export const Route = createFileRoute("/")({
@@ -227,7 +228,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           <ChevronLeft className="h-3 w-3" />
         </button>
 
-        {/* Category Bubbles */}
+        {/* Category Thumbnails: Direct match to catalog active pills */}
         <div
           ref={scrollContainerRef}
           className="flex items-center gap-3.5 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-6"
@@ -312,35 +313,34 @@ function DynamicHero({
             WELCOME TO <span className="notranslate" translate="no">ANSA NEST</span>
           </div>
 
-          <h1 className="mt-1.5 max-w-lg font-display text-lg sm:text-2xl md:text-3xl lg:text-4xl leading-tight text-balance text-foreground">
+          <h1 className="mt-1.5 max-w-lg font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight text-balance text-foreground">
             Timeless <em className="italic text-emerald">Furniture</em> for modern living.
           </h1>
 
-          <p className="mt-1 max-w-md text-[11.5px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
+          <p className="mt-1 max-w-md text-[12px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
             Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed for comfort into every home.
           </p>
 
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2"
+              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-5 sm:py-2.5"
             >
               Explore Catalog
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2"
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-5 sm:py-2.5"
             >
               Book a Showroom Visit
             </Link>
           </div>
         </div>
 
-        {/* Hero Image */}
         <div className="relative w-full">
-          <div className="relative mx-auto aspect-[16/9] w-full max-w-full overflow-hidden rounded-xl shadow-md sm:aspect-[16/10] md:aspect-[4/3] bg-muted">
+          <div className="relative mx-auto aspect-[16/9] w-full max-w-full overflow-hidden rounded-2xl shadow-md sm:aspect-[16/10] md:aspect-[4/3] bg-muted">
             {isLoading && !activeProduct && (
               <div className="absolute inset-0 animate-pulse bg-muted" />
             )}
@@ -360,12 +360,12 @@ function DynamicHero({
           </div>
 
           {products.length > 1 && (
-            <div className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 backdrop-blur-sm">
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2.5 py-1 backdrop-blur-sm">
               {products.slice(0, Math.min(products.length, 6)).map((product: any, index: number) => (
                 <span
                   key={product.id || index}
                   className={`h-1 rounded-full transition-all duration-500 ${
-                    index === activeIndex ? "w-3 bg-white" : "w-1 bg-white/50"
+                    index === activeIndex ? "w-3.5 bg-white" : "w-1 bg-white/50"
                   }`}
                 />
               ))}

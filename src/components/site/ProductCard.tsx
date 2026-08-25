@@ -10,12 +10,17 @@ function formatRupeePrice(price?: number | string | null): string {
 }
 
 export function ProductCard({ p }: { p: Product }) {
-  const targetUrl = p.id ? `/catalog/${p.id}` : "/catalog";
+  const productSlug =
+    (p as any).slug ||
+    p.id ||
+    p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  const productUrl = `/product/${productSlug}`;
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all duration-300 hover:shadow-xs">
-      {/* Compact Image */}
-      <Link to={targetUrl} className="relative block aspect-[16/11] overflow-hidden bg-muted">
+    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all duration-300 hover:shadow-md">
+      {/* Product Image */}
+      <Link to={productUrl} className="relative block aspect-[16/11] overflow-hidden bg-muted">
         {p.image_url ? (
           <img
             src={p.image_url}
@@ -30,13 +35,13 @@ export function ProductCard({ p }: { p: Product }) {
         )}
       </Link>
 
-      {/* Compact Details */}
-      <div className="flex flex-1 flex-col p-2">
-        <span className="truncate text-[8px] uppercase tracking-wider text-muted-foreground">
+      {/* Details */}
+      <div className="flex flex-1 flex-col p-2.5">
+        <span className="truncate text-[8.5px] uppercase tracking-wider text-muted-foreground">
           {p.category || "Furniture"}
         </span>
 
-        <h3 className="mt-0.5 line-clamp-1 font-display text-[11px] sm:text-xs font-semibold text-foreground">
+        <h3 className="mt-0.5 line-clamp-1 font-display text-xs sm:text-sm font-semibold text-foreground">
           {p.name}
         </h3>
 
@@ -45,15 +50,15 @@ export function ProductCard({ p }: { p: Product }) {
           <span className="font-medium text-muted-foreground">4.8</span>
         </div>
 
-        <div className="mt-1 font-sans text-xs font-bold text-foreground">
+        <div className="mt-1 font-sans text-xs sm:text-sm font-bold text-foreground">
           {formatRupeePrice(p.price)}
         </div>
 
-        {/* Action Button */}
-        <div className="mt-1.5 pt-1 border-t border-border/40">
+        {/* View Details Button */}
+        <div className="mt-2 pt-1 border-t border-border/40">
           <Link
-            to={targetUrl}
-            className="flex w-full items-center justify-center rounded-md bg-foreground py-1 text-[10px] sm:text-[11px] font-medium text-background transition-opacity hover:opacity-90"
+            to={productUrl}
+            className="flex w-full items-center justify-center rounded-lg bg-foreground py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90"
           >
             View Details
           </Link>
