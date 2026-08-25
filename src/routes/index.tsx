@@ -86,13 +86,13 @@ function Index() {
 
   return (
     <div>
-      {/* 1. COMPACT HERO BANNER */}
+      {/* 1. COMPACT HERO */}
       <DynamicHero
         products={heroProducts as Product[]}
         isLoading={isInitialLoading}
       />
 
-      {/* 2. COMPACT CATEGORY STRIP */}
+      {/* 2. PROMINENT CATEGORY CIRCLES */}
       <CategoryQuickStrip products={products as Product[]} />
 
       {/* 3. RECOMMENDED (Curated for your home) */}
@@ -132,17 +132,17 @@ function Index() {
       <TestimonialsSection />
 
       {/* 9. SHOWROOM VISIT */}
-      <section className="container-px mx-auto max-w-7xl py-10 md:py-14">
-        <div className="rounded-3xl border border-border bg-card p-6 text-center md:p-10">
-          <h2 className="font-display text-2xl text-foreground md:text-3xl">
+      <section className="container-px mx-auto max-w-7xl py-8 md:py-12">
+        <div className="rounded-3xl border border-border bg-card p-6 text-center md:p-8">
+          <h2 className="font-display text-xl text-foreground md:text-2xl">
             Visit our showroom
           </h2>
-          <p className="mx-auto mt-2 max-w-xl text-xs md:text-sm text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-xl text-xs text-muted-foreground">
             Feel the fabrics. Test the cushions. Meet the makers.
             Our team is ready to help you build the home you've
             always wanted.
           </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
               to="/contact"
               className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90"
@@ -209,14 +209,14 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const offset = direction === "left" ? -240 : 240;
+      const offset = direction === "left" ? -260 : 260;
       scrollContainerRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
 
   return (
-    <section className="container-px mx-auto max-w-7xl pt-0 pb-3">
-      <div className="relative rounded-2xl border border-border/70 bg-card/70 p-2 shadow-xs md:p-3">
+    <section className="container-px mx-auto max-w-7xl pt-0 pb-2">
+      <div className="relative rounded-2xl border border-border/70 bg-card/70 p-2.5 shadow-xs md:p-3.5">
         <button
           type="button"
           onClick={() => scroll("left")}
@@ -226,9 +226,10 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           <ChevronLeft className="h-3 w-3" />
         </button>
 
+        {/* Larger Circles: h-16 w-16 on mobile (md:h-20 md:w-20) */}
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-3 overflow-x-auto scroll-smooth px-1 py-0.5 md:gap-5 md:px-6"
+          className="flex items-center gap-3.5 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-6"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {categoriesList.map((cat) => {
@@ -241,7 +242,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                 to="/catalog"
                 className="group flex flex-col items-center flex-shrink-0 cursor-pointer text-center"
               >
-                <div className="relative h-11 w-11 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-13 sm:w-13 md:h-14 md:w-14">
+                <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-18 sm:w-18 md:h-20 md:w-20">
                   {activeImage ? (
                     <img
                       key={activeImage}
@@ -251,14 +252,14 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                     />
                   ) : (
                     <div
-                      className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-muted-foreground notranslate"
+                      className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground notranslate"
                       translate="no"
                     >
                       {cat.label.slice(0, 3).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <span className="mt-1 max-w-[72px] truncate text-[10px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
+                <span className="mt-1.5 max-w-[80px] truncate text-[11px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
                   {cat.label}
                 </span>
               </Link>
@@ -302,27 +303,25 @@ function DynamicHero({
 
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="container-px mx-auto grid max-w-7xl items-center gap-3 py-2 sm:gap-5 sm:py-3 md:grid-cols-[1.1fr_1fr] md:gap-7 md:py-4">
+      <div className="container-px mx-auto grid max-w-7xl items-center gap-2.5 py-2 sm:gap-4 sm:py-2.5 md:grid-cols-[1.1fr_1fr] md:gap-6 md:py-3.5">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8.5px] uppercase tracking-[0.2em] text-emerald sm:text-[9.5px]">
+          <div className="inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8.5px] uppercase tracking-[0.2em] text-emerald sm:text-[9.5px]">
             <Sparkles className="h-2.5 w-2.5" />
             WELCOME TO <span className="notranslate" translate="no">ANSA NEST</span>
           </div>
 
-          <h1 className="mt-1.5 max-w-lg font-display text-lg leading-tight text-balance text-foreground sm:mt-2 sm:text-2xl md:text-3xl lg:text-4xl">
-            Timeless <em className="italic text-emerald">Furniture</em>
-            <br />
-            for modern living.
+          <h1 className="mt-1 max-w-lg font-display text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight text-balance text-foreground">
+            Timeless <em className="italic text-emerald">Furniture</em> for modern living.
           </h1>
 
-          <p className="mt-1.5 max-w-md text-[11px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
+          <p className="mt-1 max-w-md text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
             Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed for comfort into every home.
           </p>
 
-          <div className="mt-2.5 flex flex-wrap gap-2 sm:mt-3">
+          <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-2.5">
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2"
+              className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-xs"
             >
               Explore Catalog
               <ArrowRight className="h-3 w-3" />
@@ -330,7 +329,7 @@ function DynamicHero({
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2"
+              className="inline-flex items-center gap-1 rounded-full border border-foreground/20 px-3 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2 sm:text-xs"
             >
               Book a Showroom Visit
             </Link>
@@ -338,7 +337,7 @@ function DynamicHero({
         </div>
 
         <div className="relative">
-          <div className="relative mx-auto aspect-[16/10] w-full max-w-[360px] sm:max-w-[420px] overflow-hidden rounded-xl shadow-md md:aspect-[4/3] bg-muted">
+          <div className="relative mx-auto aspect-[16/10] w-full max-w-[320px] sm:max-w-[380px] overflow-hidden rounded-xl shadow-md md:aspect-[4/3] bg-muted">
             {isLoading && !activeProduct && (
               <div className="absolute inset-0 animate-pulse bg-muted" />
             )}
@@ -358,7 +357,7 @@ function DynamicHero({
           </div>
 
           {products.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 backdrop-blur-sm">
+            <div className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 backdrop-blur-sm">
               {products.slice(0, Math.min(products.length, 6)).map((product: any, index: number) => (
                 <span
                   key={product.id || index}

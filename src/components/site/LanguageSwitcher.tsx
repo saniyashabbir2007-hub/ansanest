@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Globe, Check, ChevronDown } from "lucide-react";
 
 declare global {
@@ -23,10 +23,45 @@ const languageDisplayNames: Record<string, { native: string; english: string }> 
   ja: { native: "日本語", english: "Japanese" },
 };
 
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function clearGoogleCookies() {
+  const host = window.location.hostname;
+  const domainParts = host.split(".");
+  const domainsToClear = [
+    "",
+    host,
+    `.${host}`,
+  ];
+
+  if (domainParts.length > 2) {
+    const rootDomain = domainParts.slice(-2).join(".");
+    domainsToClear.push(rootDomain, `.${rootDomain}`);
+  }
+
+  const paths = ["/", "/catalog", "/gallery", "/about", "/contact"];
+
+  domainsToClear.forEach((domain) => {
+    paths.forEach((path) => {
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};${domain ? ` domain=${domain};` : ""}`;
+    });
+  });
+}
+
 export function LanguageSwitcher() {
-  const [selectedLang, setSelectedLang] = useState(() => {
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("app_lang") || "en";
+      const stored = localStorage.getItem("app_lang");
+      if (stored && languageDisplayNames[stored]) return stored;
+
+      const cookieVal = getCookie("googtrans");
+      if (cookieVal) {
+        const match = cookieVal.match(/\/en\/([a-z]{2})/i);
+        if (match && languageDisplayNames[match[1]]) return match[1];
+      }
     }
     return "en";
   });
@@ -46,7 +81,7 @@ export function LanguageSwitcher() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Initialize Google Translate script once
+  // Initialize Google Translate script
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -57,6 +92,7 @@ export function LanguageSwitcher() {
             {
               pageLanguage: "en",
               autoDisplay: false,
+              includedLanguages: "en,kn,hi,mr,gu,ta,te,bn,ml,es,fr,ja",
             },
             "google_translate_element"
           );
@@ -71,27 +107,23 @@ export function LanguageSwitcher() {
     }
   }, []);
 
-  const eraseCookie = (name: string) => {
-    const host = window.location.hostname;
-    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-    document.cookie = `${name}=; Path=/; Domain=${host}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-    document.cookie = `${name}=; Path=/; Domain=.${host}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-  };
-
-  const selectLanguage = (code: string) => {
+  const selectLanguage = useCallback((code: string) => {
+    setOpen(false);
     setSelectedLang(code);
     localStorage.setItem("app_lang", code);
 
     if (code === "en") {
-      eraseCookie("googtrans");
+      clearGoogleCookies();
       window.location.reload();
       return;
     }
 
     const host = window.location.hostname;
-    document.cookie = `googtrans=/en/${code}; Path=/;`;
-    document.cookie = `googtrans=/en/${code}; Path=/; Domain=${host};`;
-    document.cookie = `googtrans=/en/${code}; Path=/; Domain=.${host};`;
+    clearGoogleCookies();
+
+    // Set cookie across root and host
+    document.cookie = `googtrans=/en/${code}; path=/;`;
+    document.cookie = `googtrans=/en/${code}; path=/; domain=${host};`;
 
     const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
     if (selectEl) {
@@ -100,9 +132,7 @@ export function LanguageSwitcher() {
     } else {
       window.location.reload();
     }
-
-    setOpen(false);
-  };
+  }, []);
 
   return (
     <div className="relative notranslate" translate="no" ref={dropdownRef}>

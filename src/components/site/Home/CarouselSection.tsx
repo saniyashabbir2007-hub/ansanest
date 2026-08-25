@@ -16,7 +16,7 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const offset = direction === "left" ? -260 : 260;
+      const offset = direction === "left" ? -240 : 240;
       scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
@@ -24,56 +24,56 @@ export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectio
   if (!items || items.length === 0) return null;
 
   return (
-    <section className={`py-4 sm:py-6 md:py-8 ${muted ? "bg-muted/30" : ""}`}>
+    <section className={`py-2 sm:py-4 md:py-6 ${muted ? "bg-muted/30" : ""}`}>
       <div className="container-px mx-auto max-w-7xl">
-        <div className="mb-3 flex items-end justify-between sm:mb-4">
+        <div className="mb-2 flex items-end justify-between sm:mb-3">
           <div>
             {eyebrow && (
-              <span className="text-[9px] uppercase tracking-[0.2em] text-emerald font-semibold sm:text-[10px]">
+              <span className="text-[8px] uppercase tracking-[0.2em] text-emerald font-semibold sm:text-[9.5px]">
                 {eyebrow}
               </span>
             )}
-            <h2 className="mt-0.5 font-display text-lg sm:text-2xl md:text-3xl text-foreground font-semibold leading-tight">
+            <h2 className="mt-0.5 font-display text-base font-semibold text-foreground sm:text-xl md:text-2xl leading-tight">
               {title}
             </h2>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Link
               to="/catalog"
-              className="hidden items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              className="hidden items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
-              View all <ArrowRight className="h-3.5 w-3.5" />
+              View all <ArrowRight className="h-3 w-3" />
             </Link>
             <button
               type="button"
               onClick={() => scroll("left")}
               aria-label="Previous"
-              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
+              className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
+              <ChevronLeft className="h-3 w-3" />
             </button>
             <button
               type="button"
               onClick={() => scroll("right")}
               aria-label="Next"
-              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
+              className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3 w-3" />
             </button>
           </div>
         </div>
 
-        {/* Carousel: Mobile peeks next card at ~58vw */}
+        {/* Carousel Cards (Compact peek view) */}
         <div
           ref={scrollRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scroll-smooth"
+          className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-1 scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {items.map((product) => (
             <div
               key={product.id}
-              className="w-[58vw] max-w-[210px] flex-shrink-0 sm:w-56 sm:max-w-none md:w-64"
+              className="w-[52vw] max-w-[190px] flex-shrink-0 sm:w-48 sm:max-w-none md:w-56"
             >
               <ProductCard p={product} />
             </div>
