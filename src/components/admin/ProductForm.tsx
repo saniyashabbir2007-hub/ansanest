@@ -174,6 +174,24 @@ export function ProductForm({
     }
   }
 
+  // --- Standalone Color Variants ---
+  function addStandaloneColor() {
+    const list = [...(v.color_variants ?? [])];
+    set("color_variants", [...list, { name: "", images: [] }]);
+  }
+
+  function updateStandaloneColor(colorIdx: number, patch: Partial<VariantColor>) {
+    const list = [...(v.color_variants ?? [])];
+    list[colorIdx] = { ...list[colorIdx], ...patch };
+    set("color_variants", list);
+  }
+
+  function removeStandaloneColor(colorIdx: number) {
+    const list = [...(v.color_variants ?? [])].filter((_, i) => i !== colorIdx);
+    set("color_variants", list);
+  }
+
+  // --- Dimension Variants ---
   function addDimensionVariant() {
     const id = `var-${Date.now()}`;
     const newVariant: DimensionVariant = {
@@ -338,7 +356,6 @@ export function ProductForm({
       features,
     });
 
-    // Invalidate product caches across the application
     await qc.invalidateQueries({ queryKey: ["products"] });
     await qc.refetchQueries({ queryKey: ["products"] });
   }
@@ -874,6 +891,89 @@ export function ProductForm({
               accept="video/*"
             />
           </div>
+        </Card>
+
+        {/* STANDALONE PRODUCT COLOR VARIANTS (OUTSIDE OF DIMENSIONS) */}
+        <Card title="Product Color Variants">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-muted-foreground">
+              Color swatches for this product (used when no dimensions are selected or across all variants)[cite: 3].
+            </p>
+            <button
+              type="button"
+              onClick={addStandaloneColor}
+              className="text-xs text-emerald font-semibold hover:underline inline-flex items-center gap-1 shrink-0"
+            >
+              <Plus className="h-3 w-3" /> Add Color
+            </button>
+          </div>
+
+          {(v.color_variants ?? []).length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              No standalone color variants added.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(v.color_variants ?? []).map((col, cIdx) => (
+                <div key={cIdx} className="rounded-lg border border-border/80 bg-background p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      placeholder="Color Name (e.g. Ivory White)"
+                      value={col.name}
+                      onChange={(e) => updateStandaloneColor(cIdx, { name: e.target.value })}
+                      className={`${inputCls} text-xs py-1.5`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeStandaloneColor(cIdx)}
+                      className="p-1.5 text-muted-foreground hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <UploadBox
+                    uploading={false}
+                    multiple
+                    label={`Upload photos for ${col.name || "this color"}`}
+                    onFiles={async (files) => {
+                      const uploaded: string[] = [];
+                      for (const file of Array.from(files)) {
+                        uploaded.push(await uploadProductImage(file));
+                      }
+                      updateStandaloneColor(cIdx, {
+                        images: [...(col.images ?? []), ...uploaded],
+                      });
+                    }}
+                  />
+
+                  {(col.images ?? []).length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {(col.images ?? []).map((cImg, cImgIdx) => (
+                        <div key={cImgIdx} className="relative group">
+                          <img
+                            src={cImg}
+                            alt=""
+                            className="aspect-square rounded-md object-cover w-full border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cImgs = (col.images ?? []).filter((_, i) => i !== cImgIdx);
+                              updateStandaloneColor(cIdx, { images: cImgs });
+                            }}
+                            className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card title="Display">
