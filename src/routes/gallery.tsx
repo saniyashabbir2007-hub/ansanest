@@ -23,11 +23,12 @@ function Gallery() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("All");
   const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
-  const images = products.flatMap((p) =>
-    (p.gallery_urls.length ? p.gallery_urls : [p.image_url])
+  const images = (products ?? []).flatMap((p: any) =>
+    (Array.isArray(p?.gallery_urls) && p.gallery_urls.length > 0 ? p.gallery_urls : [p?.image_url])
       .filter(Boolean)
-      .map((src, i) => ({ src, name: p.name, cat: p.category, key: `${p.id}-${i}` })),
+      .map((src: string, i: number) => ({ src, name: p?.name, cat: p?.category, key: `${p?.id}-${i}` }))
   );
+
   const filtered = images.filter((img) => {
     if (tab === "All") return true;
     if (tab === "Sofas") return img.cat === "Sofa";
@@ -38,22 +39,26 @@ function Gallery() {
   });
 
   return (
-    <div className="container-px mx-auto max-w-7xl py-16">
+    <div className="container-px mx-auto max-w-7xl py-8 sm:py-12">
       <div className="text-center">
-        <div className="text-xs uppercase tracking-[0.25em] text-emerald">Gallery</div>
-        <h1 className="mt-3 font-display text-5xl text-foreground md:text-6xl">Our Craft, In Homes</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-emerald font-semibold">Gallery</div>
+        <h1 className="mt-2 font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground">
+          Our Craft, In Homes
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl text-xs sm:text-sm text-muted-foreground">
           A glimpse into homes, hotels and lounges across India where our upholstery now lives.
         </p>
       </div>
 
-      <div className="mt-10 flex flex-wrap justify-center gap-2">
+      <div className="mt-6 flex flex-wrap justify-center gap-1.5 sm:gap-2">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-              tab === t ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:bg-muted"
+            className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              tab === t
+                ? "border-foreground bg-foreground text-background shadow-xs"
+                : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground"
             }`}
           >
             {t}
@@ -61,13 +66,18 @@ function Gallery() {
         ))}
       </div>
 
-      <div className="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
+      <div className="mt-8 sm:mt-10 columns-1 gap-3 sm:columns-2 lg:columns-3 [&>*]:mb-3 sm:[&>*]:mb-4">
         {filtered.map((img) => (
-          <figure key={img.key} className="break-inside-avoid overflow-hidden rounded-xl">
-            <img src={img.src} alt={img.name} loading="lazy" className="w-full object-cover transition-transform duration-700 hover:scale-105" />
-            <figcaption className="bg-card px-4 py-3">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">{img.cat}</div>
-              <div className="font-display text-base text-foreground">{img.name}</div>
+          <figure key={img.key} className="break-inside-avoid overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+            <img
+              src={img.src}
+              alt={img.name}
+              loading="lazy"
+              className="w-full object-cover transition-transform duration-700 hover:scale-105"
+            />
+            <figcaption className="bg-card px-3.5 py-2.5">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{img.cat}</div>
+              <div className="font-display text-sm font-semibold text-foreground">{img.name}</div>
             </figcaption>
           </figure>
         ))}
