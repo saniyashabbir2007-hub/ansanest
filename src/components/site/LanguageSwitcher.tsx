@@ -8,21 +8,6 @@ declare global {
   }
 }
 
-const languages = [
-  { code: "en", label: "English", native: "English" },
-  { code: "kn", label: "English", native: "ಕನ್ನಡ" },
-  { code: "hi", label: "English", native: "हिंदी" },
-  { code: "mr", label: "English", native: "मराठी" },
-  { code: "gu", label: "English", native: "ગુજરાતી" },
-  { code: "ta", label: "English", native: "தமிழ்" },
-  { code: "te", label: "English", native: "తెలుగు" },
-  { code: "bn", label: "English", native: "বাংলা" },
-  { code: "ml", label: "English", native: "മലയാളം" },
-  { code: "es", label: "English", native: "Español" },
-  { code: "fr", label: "English", native: "Français" },
-  { code: "ja", label: "English", native: "日本語" },
-];
-
 const languageDisplayNames: Record<string, { native: string; english: string }> = {
   en: { native: "English", english: "English" },
   kn: { native: "ಕನ್ನಡ", english: "Kannada" },
@@ -61,6 +46,7 @@ export function LanguageSwitcher() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Initialize Google Translate script once
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -85,28 +71,36 @@ export function LanguageSwitcher() {
     }
   }, []);
 
+  const eraseCookie = (name: string) => {
+    const host = window.location.hostname;
+    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    document.cookie = `${name}=; Path=/; Domain=${host}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    document.cookie = `${name}=; Path=/; Domain=.${host}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+  };
+
   const selectLanguage = (code: string) => {
     setSelectedLang(code);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("app_lang", code);
+    localStorage.setItem("app_lang", code);
 
-      if (code === "en") {
-        document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname;
-        window.location.reload();
-      } else {
-        document.cookie = `googtrans=/en/${code}; path=/;`;
-        document.cookie = `googtrans=/en/${code}; path=/; domain=${window.location.hostname};`;
-
-        const combo = document.querySelector(".goog-te-combo") as HTMLSelectElement;
-        if (combo) {
-          combo.value = code;
-          combo.dispatchEvent(new Event("change"));
-        } else {
-          window.location.reload();
-        }
-      }
+    if (code === "en") {
+      eraseCookie("googtrans");
+      window.location.reload();
+      return;
     }
+
+    const host = window.location.hostname;
+    document.cookie = `googtrans=/en/${code}; Path=/;`;
+    document.cookie = `googtrans=/en/${code}; Path=/; Domain=${host};`;
+    document.cookie = `googtrans=/en/${code}; Path=/; Domain=.${host};`;
+
+    const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+    if (selectEl) {
+      selectEl.value = code;
+      selectEl.dispatchEvent(new Event("change"));
+    } else {
+      window.location.reload();
+    }
+
     setOpen(false);
   };
 
@@ -117,7 +111,7 @@ export function LanguageSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-10 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+        className="flex h-8 md:h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-[11px] md:text-xs font-medium text-foreground transition-colors hover:bg-muted"
         aria-label="Select Language"
       >
         <Globe className="h-3.5 w-3.5 text-muted-foreground" />
@@ -132,13 +126,13 @@ export function LanguageSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 max-h-72 w-56 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl z-50 notranslate" translate="no">
+        <div className="absolute right-0 mt-1.5 max-h-64 w-52 overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-xl z-50 notranslate" translate="no">
           {Object.entries(languageDisplayNames).map(([code, item]) => (
             <button
               key={code}
               type="button"
               onClick={() => selectLanguage(code)}
-              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition-colors notranslate ${
+              className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors notranslate ${
                 selectedLang === code
                   ? "bg-foreground/5 font-semibold text-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"

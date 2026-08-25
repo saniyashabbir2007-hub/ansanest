@@ -96,13 +96,11 @@ function Index() {
       <CategoryQuickStrip products={products as Product[]} />
 
       {/* 3. RECOMMENDED (Curated for your home) */}
-      <div className="pt-2">
-        <CarouselSection
-          eyebrow="Recommended"
-          title="Curated for your home"
-          items={recommendedProducts as Product[]}
-        />
-      </div>
+      <CarouselSection
+        eyebrow="Recommended"
+        title="Curated for your home"
+        items={recommendedProducts as Product[]}
+      />
 
       {/* 4. BEST SELLERS */}
       <CarouselSection
@@ -134,26 +132,26 @@ function Index() {
       <TestimonialsSection />
 
       {/* 9. SHOWROOM VISIT */}
-      <section className="container-px mx-auto max-w-7xl py-12 md:py-16">
-        <div className="rounded-3xl border border-border bg-card p-8 text-center md:p-12">
-          <h2 className="font-display text-3xl text-foreground md:text-4xl">
+      <section className="container-px mx-auto max-w-7xl py-10 md:py-14">
+        <div className="rounded-3xl border border-border bg-card p-6 text-center md:p-10">
+          <h2 className="font-display text-2xl text-foreground md:text-3xl">
             Visit our showroom
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-xs md:text-sm text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-xl text-xs md:text-sm text-muted-foreground">
             Feel the fabrics. Test the cushions. Meet the makers.
             Our team is ready to help you build the home you've
             always wanted.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <div className="mt-5 flex flex-wrap justify-center gap-2.5">
             <Link
               to="/contact"
-              className="rounded-full bg-foreground px-5 py-2.5 text-xs md:text-sm font-medium text-background hover:opacity-90"
+              className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90"
             >
               Get Directions
             </Link>
             <a
               href={`tel:${BUSINESS.phoneRaw}`}
-              className="rounded-full border border-foreground/20 px-5 py-2.5 text-xs md:text-sm font-medium text-foreground hover:bg-foreground hover:text-background notranslate"
+              className="rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground hover:text-background notranslate"
               translate="no"
             >
               Call {BUSINESS.phone}
@@ -211,26 +209,26 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const offset = direction === "left" ? -280 : 280;
+      const offset = direction === "left" ? -240 : 240;
       scrollContainerRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
 
   return (
-    <section className="container-px mx-auto max-w-7xl pt-1 pb-4">
-      <div className="relative rounded-2xl border border-border/70 bg-card/80 p-2.5 shadow-sm md:p-3.5">
+    <section className="container-px mx-auto max-w-7xl pt-0 pb-3">
+      <div className="relative rounded-2xl border border-border/70 bg-card/70 p-2 shadow-xs md:p-3">
         <button
           type="button"
           onClick={() => scroll("left")}
           aria-label="Scroll left"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background shadow text-foreground transition-transform hover:scale-105 hover:bg-muted"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-transform hover:scale-105"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-3 w-3" />
         </button>
 
         <div
           ref={scrollContainerRef}
-          className="flex items-center gap-4 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-8"
+          className="flex items-center gap-3 overflow-x-auto scroll-smooth px-1 py-0.5 md:gap-5 md:px-6"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {categoriesList.map((cat) => {
@@ -243,7 +241,7 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                 to="/catalog"
                 className="group flex flex-col items-center flex-shrink-0 cursor-pointer text-center"
               >
-                <div className="relative h-14 w-14 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 md:h-16 md:w-16">
+                <div className="relative h-11 w-11 overflow-hidden rounded-full border border-border bg-muted/80 p-0.5 transition-all duration-300 group-hover:scale-105 group-hover:border-foreground/40 sm:h-13 sm:w-13 md:h-14 md:w-14">
                   {activeImage ? (
                     <img
                       key={activeImage}
@@ -253,14 +251,14 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
                     />
                   ) : (
                     <div
-                      className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground notranslate"
+                      className="flex h-full w-full items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-muted-foreground notranslate"
                       translate="no"
                     >
                       {cat.label.slice(0, 3).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <span className="mt-1 max-w-[85px] truncate text-[11px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
+                <span className="mt-1 max-w-[72px] truncate text-[10px] font-medium text-foreground transition-colors group-hover:text-emerald md:text-xs">
                   {cat.label}
                 </span>
               </Link>
@@ -272,9 +270,9 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           type="button"
           onClick={() => scroll("right")}
           aria-label="Scroll right"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background shadow text-foreground transition-transform hover:scale-105 hover:bg-muted"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-transform hover:scale-105"
         >
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3 w-3" />
         </button>
       </div>
     </section>
@@ -304,35 +302,35 @@ function DynamicHero({
 
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="container-px mx-auto grid max-w-7xl items-center gap-4 py-3 sm:gap-6 sm:py-4 md:grid-cols-[1.1fr_1fr] md:gap-8 md:py-6">
+      <div className="container-px mx-auto grid max-w-7xl items-center gap-3 py-2 sm:gap-5 sm:py-3 md:grid-cols-[1.1fr_1fr] md:gap-7 md:py-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.2em] text-emerald sm:text-[10px]">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[8.5px] uppercase tracking-[0.2em] text-emerald sm:text-[9.5px]">
             <Sparkles className="h-2.5 w-2.5" />
             WELCOME TO <span className="notranslate" translate="no">ANSA NEST</span>
           </div>
 
-          <h1 className="mt-2 max-w-lg font-display text-xl leading-[1.08] text-balance text-foreground sm:mt-3 sm:text-2xl md:mt-3 md:text-4xl lg:text-5xl">
+          <h1 className="mt-1.5 max-w-lg font-display text-lg leading-tight text-balance text-foreground sm:mt-2 sm:text-2xl md:text-3xl lg:text-4xl">
             Timeless <em className="italic text-emerald">Furniture</em>
             <br />
             for modern living.
           </h1>
 
-          <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
-            Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed to bring timeless elegance and comfort into every home.
+          <p className="mt-1.5 max-w-md text-[11px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
+            Thoughtfully crafted sofas, upholstered beds and bespoke furniture designed for comfort into every home.
           </p>
 
-          <div className="mt-3.5 flex flex-wrap gap-2 sm:mt-4">
+          <div className="mt-2.5 flex flex-wrap gap-2 sm:mt-3">
             <Link
               to="/catalog"
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-5 sm:py-2.5"
+              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 sm:px-4 sm:py-2"
             >
               Explore Catalog
-              <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <ArrowRight className="h-3 w-3" />
             </Link>
 
             <Link
               to="/contact"
-              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-5 sm:py-2.5"
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/20 px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground hover:text-background sm:px-4 sm:py-2"
             >
               Book a Showroom Visit
             </Link>
@@ -340,7 +338,7 @@ function DynamicHero({
         </div>
 
         <div className="relative">
-          <div className="relative mx-auto aspect-[16/10] w-full max-w-[460px] overflow-hidden rounded-xl shadow-lg sm:rounded-2xl md:aspect-[4/3] bg-muted">
+          <div className="relative mx-auto aspect-[16/10] w-full max-w-[360px] sm:max-w-[420px] overflow-hidden rounded-xl shadow-md md:aspect-[4/3] bg-muted">
             {isLoading && !activeProduct && (
               <div className="absolute inset-0 animate-pulse bg-muted" />
             )}
@@ -350,8 +348,8 @@ function DynamicHero({
                 key={activeProduct.id || activeProduct.image_url}
                 src={activeProduct.image_url}
                 alt={activeProduct.name || "Ansa Nest Luxury Furniture"}
-                width={900}
-                height={675}
+                width={800}
+                height={600}
                 className="absolute inset-0 h-full w-full object-cover opacity-100 transition-opacity duration-1000"
               />
             )}
@@ -360,12 +358,12 @@ function DynamicHero({
           </div>
 
           {products.length > 1 && (
-            <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-1 backdrop-blur-sm">
+            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 backdrop-blur-sm">
               {products.slice(0, Math.min(products.length, 6)).map((product: any, index: number) => (
                 <span
                   key={product.id || index}
                   className={`h-1 rounded-full transition-all duration-500 ${
-                    index === activeIndex ? "w-4 bg-white" : "w-1 bg-white/50"
+                    index === activeIndex ? "w-3.5 bg-white" : "w-1 bg-white/50"
                   }`}
                 />
               ))}

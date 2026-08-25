@@ -1,86 +1,83 @@
-import { Product } from "@/lib/products-api";
-import SectionHead from "@/components/site/SectionHead";
-import { HomeProductCard } from "@/components/site/Home/HomeProductCard";
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ProductCard } from "@/components/site/ProductCard";
+import type { Product } from "@/lib/products-api";
 
 interface CarouselSectionProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   items: Product[];
   muted?: boolean;
 }
 
-export function CarouselSection({
-  eyebrow,
-  title,
-  items,
-  muted = false,
-}: CarouselSectionProps) {
-  if (items.length === 0) return null;
+export function CarouselSection({ eyebrow, title, items, muted }: CarouselSectionProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const offset = direction === "left" ? -260 : 260;
+      scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
+  if (!items || items.length === 0) return null;
 
   return (
-    <section
-      className={
-        muted
-          ? "bg-muted/40 py-8 sm:py-10"
-          : "py-8 sm:py-10"
-      }
-    >
+    <section className={`py-4 sm:py-6 md:py-8 ${muted ? "bg-muted/30" : ""}`}>
       <div className="container-px mx-auto max-w-7xl">
-        <SectionHead eyebrow={eyebrow} title={title} />
+        <div className="mb-3 flex items-end justify-between sm:mb-4">
+          <div>
+            {eyebrow && (
+              <span className="text-[9px] uppercase tracking-[0.2em] text-emerald font-semibold sm:text-[10px]">
+                {eyebrow}
+              </span>
+            )}
+            <h2 className="mt-0.5 font-display text-lg sm:text-2xl md:text-3xl text-foreground font-semibold leading-tight">
+              {title}
+            </h2>
+          </div>
 
-        {/* Mobile = compact horizontal scroll
-            Desktop = normal grid */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              to="/catalog"
+              className="hidden items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+            >
+              View all <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => scroll("left")}
+              aria-label="Previous"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scroll("right")}
+              aria-label="Next"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-border bg-background shadow-xs text-foreground transition-colors hover:bg-muted"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Carousel: Mobile peeks next card at ~58vw */}
         <div
-          className="
-            mt-5
-            flex
-            gap-2.5
-            overflow-x-auto
-            overflow-y-hidden
-            pb-2
-            snap-x
-            snap-mandatory
-            scrollbar-hide
-
-            sm:mt-6
-            sm:gap-3
-
-            md:grid
-            md:grid-cols-3
-            md:gap-4
-            md:overflow-visible
-            md:pb-0
-            md:snap-none
-
-            lg:grid-cols-4
-            xl:grid-cols-5
-          "
+          ref={scrollRef}
+          className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {items.map((product) => (
             <div
               key={product.id}
-              className="
-                min-w-[42%]
-                max-w-[42%]
-                shrink-0
-                snap-start
-
-                sm:min-w-[32%]
-                sm:max-w-[32%]
-
-                md:min-w-0
-                md:max-w-none
-                md:shrink
-              "
+              className="w-[58vw] max-w-[210px] flex-shrink-0 sm:w-56 sm:max-w-none md:w-64"
             >
-              <HomeProductCard p={product} />
+              <ProductCard p={product} />
             </div>
           ))}
-        </div>
-
-        {/* Small mobile scroll hint */}
-        <div className="mt-2 text-[9px] text-muted-foreground sm:hidden">
-          Swipe to explore →
         </div>
       </div>
     </section>
