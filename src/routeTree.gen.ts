@@ -22,7 +22,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
-import { Route as CatalogIdRouteImport } from './routes/catalog.$id'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -98,11 +97,6 @@ const ProductIdRoute = ProductIdRouteImport.update({
   path: '/product/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CatalogIdRoute = CatalogIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CatalogRoute,
-} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -165,7 +159,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/catalog': typeof CatalogRouteWithChildren
+  '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -174,7 +168,6 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/catalog/$id': typeof CatalogIdRoute
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
@@ -190,7 +183,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/catalog': typeof CatalogRouteWithChildren
+  '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -198,7 +191,6 @@ export interface FileRoutesByTo {
   '/shipping-policy': typeof ShippingPolicyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
-  '/catalog/$id': typeof CatalogIdRoute
   '/product/$id': typeof ProductIdRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
@@ -216,7 +208,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/catalog': typeof CatalogRouteWithChildren
+  '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -225,7 +217,6 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/catalog/$id': typeof CatalogIdRoute
   '/product/$id': typeof ProductIdRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/categories': typeof AuthenticatedAdminCategoriesRoute
@@ -252,7 +243,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-of-service'
     | '/admin'
-    | '/catalog/$id'
     | '/product/$id'
     | '/admin/activity'
     | '/admin/categories'
@@ -276,7 +266,6 @@ export interface FileRouteTypes {
     | '/shipping-policy'
     | '/sitemap.xml'
     | '/terms-of-service'
-    | '/catalog/$id'
     | '/product/$id'
     | '/admin/activity'
     | '/admin/categories'
@@ -302,7 +291,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-of-service'
     | '/_authenticated/admin'
-    | '/catalog/$id'
     | '/product/$id'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/categories'
@@ -320,7 +308,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
-  CatalogRoute: typeof CatalogRouteWithChildren
+  CatalogRoute: typeof CatalogRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -423,13 +411,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/product/$id'
       preLoaderRoute: typeof ProductIdRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/catalog/$id': {
-      id: '/catalog/$id'
-      path: '/$id'
-      fullPath: '/catalog/$id'
-      preLoaderRoute: typeof CatalogIdRouteImport
-      parentRoute: typeof CatalogRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -542,23 +523,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface CatalogRouteChildren {
-  CatalogIdRoute: typeof CatalogIdRoute
-}
-
-const CatalogRouteChildren: CatalogRouteChildren = {
-  CatalogIdRoute: CatalogIdRoute,
-}
-
-const CatalogRouteWithChildren =
-  CatalogRoute._addFileChildren(CatalogRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
-  CatalogRoute: CatalogRouteWithChildren,
+  CatalogRoute: CatalogRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,

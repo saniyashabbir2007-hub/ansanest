@@ -78,10 +78,9 @@ function Index() {
   const featured = products.filter((p) => p.featured === true);
   const heroProducts = featured.length > 0 ? featured : products;
   const recommendedProducts = products.slice(0, 10);
-  const bestSellerProducts = products.slice(0, 10);
 
   const featuredProductsList = featured.length > 0 ? featured : products.slice(0, 8);
-  const premiumProductsList = products
+  const bestSellerProductsList = products
     .filter((p: any) => (p.price && Number(p.price) >= 50000) || p.customizable === true)
     .slice(0, 8);
 
@@ -103,36 +102,28 @@ function Index() {
         items={recommendedProducts as Product[]}
       />
 
-      {/* 4. BEST SELLERS */}
-      <CarouselSection
-        eyebrow="Best Sellers"
-        title="Most loved by our customers"
-        items={bestSellerProducts as Product[]}
-        muted
-      />
-
-      {/* 5. FEATURED PRODUCTS */}
+      {/* 4. FEATURED PRODUCTS */}
       <CarouselSection
         eyebrow="Featured"
         title="Featured Products"
         items={featuredProductsList as Product[]}
       />
 
-      {/* 6. PREMIUM COLLECTION */}
+      {/* 5. BEST SELLERS (Curated Premium Collection) */}
       <CarouselSection
-        eyebrow="Exclusive"
-        title="Premium Collection"
-        items={(premiumProductsList.length > 0 ? premiumProductsList : products) as Product[]}
+        eyebrow="Best Sellers"
+        title="Most loved by our customers"
+        items={(bestSellerProductsList.length > 0 ? bestSellerProductsList : products) as Product[]}
         muted
       />
 
-      {/* 7. TRUST BAR */}
+      {/* 6. TRUST BAR */}
       <TrustBar />
 
-      {/* 8. TESTIMONIALS */}
+      {/* 7. TESTIMONIALS */}
       <TestimonialsSection />
 
-      {/* 9. SHOWROOM VISIT */}
+      {/* 8. SHOWROOM VISIT */}
       <section className="container-px mx-auto max-w-7xl py-8 md:py-12">
         <div className="rounded-3xl border border-border bg-card p-6 text-center md:p-8">
           <h2 className="font-display text-xl text-foreground md:text-2xl">
@@ -228,7 +219,6 @@ function CategoryQuickStrip({ products }: { products: Product[] }) {
           <ChevronLeft className="h-3 w-3" />
         </button>
 
-        {/* Category Thumbnails: Direct match to catalog active pills */}
         <div
           ref={scrollContainerRef}
           className="flex items-center gap-3.5 overflow-x-auto scroll-smooth px-1 py-1 md:gap-6 md:px-6"

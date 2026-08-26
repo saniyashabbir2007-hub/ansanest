@@ -109,30 +109,60 @@ export function LanguageSwitcher() {
 
   const selectLanguage = useCallback((code: string) => {
     setOpen(false);
+
+    if (code === selectedLang) return;
+
+    // 1. Create a seamless instant overlay mask to eliminate the English flicker
+    let mask = document.getElementById("lang-switch-mask");
+    if (!mask) {
+      mask = document.createElement("div");
+      mask.id = "lang-switch-mask";
+      mask.style.position = "fixed";
+      mask.style.inset = "0";
+      mask.style.zIndex = "999999";
+      mask.style.backgroundColor = "var(--background, #faf8f5)";
+      mask.style.opacity = "0";
+      mask.style.transition = "opacity 120ms ease-in-out";
+      mask.style.pointerEvents = "all";
+      document.body.appendChild(mask);
+    }
+
+    requestAnimationFrame(() => {
+      if (mask) mask.style.opacity = "1";
+    });
+
     setSelectedLang(code);
     localStorage.setItem("app_lang", code);
 
     if (code === "en") {
       clearGoogleCookies();
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
       return;
     }
 
     const host = window.location.hostname;
-    clearGoogleCookies();
+    const cookieVal = `/en/${code}`;
 
-    // Set cookie across root and host
-    document.cookie = `googtrans=/en/${code}; path=/;`;
-    document.cookie = `googtrans=/en/${code}; path=/; domain=${host};`;
+    // Set cookie immediately
+    document.cookie = `googtrans=${cookieVal}; path=/;`;
+    document.cookie = `googtrans=${cookieVal}; path=/; domain=${host};`;
 
-    const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+    const selectEl = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
     if (selectEl) {
       selectEl.value = code;
-      selectEl.dispatchEvent(new Event("change"));
-    } else {
-      window.location.reload();
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
     }
-  }, []);
+
+    // 2. Smoothly remove the mask once translation applies
+    setTimeout(() => {
+      if (mask) {
+        mask.style.opacity = "0";
+        setTimeout(() => mask?.remove(), 150);
+      }
+    }, 350);
+  }, [selectedLang]);
 
   return (
     <div className="relative notranslate" translate="no" ref={dropdownRef}>
@@ -141,7 +171,7 @@ export function LanguageSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-8 md:h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-[11px] md:text-xs font-medium text-foreground transition-colors hover:bg-muted"
+        className="flex h-8 md:h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-[11px] md:text-xs font-medium text-foreground transition-colors hover:bg-muted cursor-pointer"
         aria-label="Select Language"
       >
         <Globe className="h-3.5 w-3.5 text-muted-foreground" />
@@ -162,7 +192,7 @@ export function LanguageSwitcher() {
               key={code}
               type="button"
               onClick={() => selectLanguage(code)}
-              className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors notranslate ${
+              className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors notranslate cursor-pointer ${
                 selectedLang === code
                   ? "bg-foreground/5 font-semibold text-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
