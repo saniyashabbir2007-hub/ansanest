@@ -3,7 +3,7 @@ export const BUSINESS = {
   tagline: "Crafted for Comfort",
   owner: "[Owner Name]",
   phone: "+91 9838992444",
-  phoneRaw: "919838992444",
+  phoneRaw: "91 9651886293",
   whatsapp: "919651886293", // country code + number, no +
   email: "contact.ansanest@gmail.com",
   address: "Oshiwara, Jogeshwari, Maharashtra, India 400102",
