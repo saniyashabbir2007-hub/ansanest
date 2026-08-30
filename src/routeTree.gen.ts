@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as GoogleFeedDotxmlRouteImport } from './routes/google-feed[.]xml'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -56,6 +57,11 @@ const RefundPolicyRoute = RefundPolicyRouteImport.update({
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: '/privacy-policy',
   path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoogleFeedDotxmlRoute = GoogleFeedDotxmlRouteImport.update({
+  id: '/google-feed.xml',
+  path: '/google-feed.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryRoute = GalleryRouteImport.update({
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/google-feed.xml': typeof GoogleFeedDotxmlRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
   '/shipping-policy': typeof ShippingPolicyRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/google-feed.xml': typeof GoogleFeedDotxmlRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
   '/shipping-policy': typeof ShippingPolicyRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/google-feed.xml': typeof GoogleFeedDotxmlRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
   '/shipping-policy': typeof ShippingPolicyRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/contact'
     | '/gallery'
+    | '/google-feed.xml'
     | '/privacy-policy'
     | '/refund-policy'
     | '/shipping-policy'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/contact'
     | '/gallery'
+    | '/google-feed.xml'
     | '/privacy-policy'
     | '/refund-policy'
     | '/shipping-policy'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/contact'
     | '/gallery'
+    | '/google-feed.xml'
     | '/privacy-policy'
     | '/refund-policy'
     | '/shipping-policy'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
+  GoogleFeedDotxmlRoute: typeof GoogleFeedDotxmlRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
   ShippingPolicyRoute: typeof ShippingPolicyRoute
@@ -354,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/google-feed.xml': {
+      id: '/google-feed.xml'
+      path: '/google-feed.xml'
+      fullPath: '/google-feed.xml'
+      preLoaderRoute: typeof GoogleFeedDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gallery': {
@@ -531,6 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
+  GoogleFeedDotxmlRoute: GoogleFeedDotxmlRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RefundPolicyRoute: RefundPolicyRoute,
   ShippingPolicyRoute: ShippingPolicyRoute,
