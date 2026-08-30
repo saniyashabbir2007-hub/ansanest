@@ -30,6 +30,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         content:
           "Handcrafted bespoke sofas, sectionals, upholstered beds, and custom luxury furniture in India.",
       },
+      {
+        name: "google-site-verification",
+        content: "IMFQavA8AoVg4GoVi4hKcqmUS4jNjtoTpeh8YMD3lWc",
+      },
+    
     ],
     links: [
       { rel: "stylesheet", href: appCss },
