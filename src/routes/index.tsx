@@ -46,6 +46,10 @@ export const Route = createFileRoute("/")({
         content:
           "Hand-crafted sofas, L-shaped & U-shaped sectional sofas, luxury upholstered beds, and bespoke custom upholstery. Visit our premium furniture showroom in India.",
       },
+       {
+        name: "google-site-verification",
+        content: "IMFQavA8AoVg4GoVi4hKcqmUS4jNjtoTpeh8YMD3lWc",
+      },
       {
         property: "og:title",
         content: `${BUSINESS.name} — Premium Upholstery Furniture`,
