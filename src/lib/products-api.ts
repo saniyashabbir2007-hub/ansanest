@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
+
 export type VariantColor = {
   name: string;
   images: string[];
