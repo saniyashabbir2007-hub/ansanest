@@ -46,7 +46,7 @@ export const Route = createFileRoute("/")({
         content:
           "Hand-crafted sofas, L-shaped & U-shaped sectional sofas, luxury upholstered beds, and bespoke custom upholstery. Visit our premium furniture showroom in India.",
       },
-       {
+      {
         name: "google-site-verification",
         content: "IMFQavA8AoVg4GoVi4hKcqmUS4jNjtoTpeh8YMD3lWc",
       },
@@ -127,31 +127,52 @@ function Index() {
       {/* 7. TESTIMONIALS */}
       <TestimonialsSection />
 
-      {/* 8. SHOWROOM VISIT */}
+      {/* 8. SHOWROOM VISIT WITH GOOGLE MAP EMBED */}
       <section className="container-px mx-auto max-w-7xl py-8 md:py-12">
-        <div className="rounded-3xl border border-border bg-card p-6 text-center md:p-8">
-          <h2 className="font-display text-xl text-foreground md:text-2xl">
-            Visit our showroom
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-xs text-muted-foreground">
-            Feel the fabrics. Test the cushions. Meet the makers.
-            Our team is ready to help you build the home you've
-            always wanted.
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Link
-              to="/contact"
-              className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90"
-            >
-              Get Directions
-            </Link>
-            <a
-              href={`tel:${BUSINESS.phoneRaw}`}
-              className="rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground hover:text-background notranslate"
-              translate="no"
-            >
-              Call {BUSINESS.phone}
-            </a>
+        <div className="overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8">
+          <div className="grid items-center gap-6 lg:grid-cols-[1.1fr_1fr]">
+            <div className="text-center lg:text-left">
+              <h2 className="font-display text-xl text-foreground md:text-2xl">
+                Visit our showroom
+              </h2>
+              <p className="mt-2 max-w-xl text-xs text-muted-foreground lg:mx-0 mx-auto">
+                Feel the fabrics. Test the cushions. Meet the makers.
+                Our team is ready to help you build the home you've
+                always wanted.
+              </p>
+              <p className="mt-3 text-xs font-medium text-foreground">
+                📍 Oshiwara, Jogeshwari, Maharashtra, India 400102
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center lg:justify-start gap-2">
+                <Link
+                  to="/contact"
+                  className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background hover:opacity-90"
+                >
+                  Get Directions
+                </Link>
+                <a
+                  href={`tel:${BUSINESS.phoneRaw}`}
+                  className="rounded-full border border-foreground/20 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground hover:text-background notranslate"
+                  translate="no"
+                >
+                  Call {BUSINESS.phone}
+                </a>
+              </div>
+            </div>
+
+            {/* Embedded Google Map */}
+            <div className="h-[260px] w-full overflow-hidden rounded-2xl border border-border/80 shadow-xs sm:h-[300px]">
+              <iframe
+                title="Ansa Nest Showroom Location"
+                src="https://maps.google.com/maps?q=Oshiwara,%20Jogeshwari,%20Maharashtra,%20India%20400102&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen={false}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
           </div>
         </div>
       </section>

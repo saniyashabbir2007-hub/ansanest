@@ -1,57 +1,38 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Session, User } from "@supabase/supabase-js";
+import { useState, useEffect } from "react";
+import { pb } from "@/integrations/pocketbase/client";
+import type { RecordModel } from "pocketbase";
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<RecordModel | null>(pb.authStore.record);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function loadRoles(u: User | null) {
-      if (!u) {
-        setIsAdmin(false);
-        setIsSuperAdmin(false);
-        return;
-      }
-      const [adminRes, superRes] = await Promise.all([
-        supabase
-          .from("user_roles")
-          .select("role,disabled")
-          .eq("user_id", u.id)
-          .eq("role", "admin")
-          .eq("disabled", false)
-          .maybeSingle(),
-        supabase
-          .from("super_admins")
-          .select("user_id")
-          .eq("user_id", u.id)
-          .maybeSingle(),
-      ]);
-      console.log("Current User:", u?.id);
-console.log("Admin Result:", adminRes.data);
-console.log("Super Admin Result:", superRes.data);
+    // Listen to PocketBase authStore state changes
+    const unsubscribe = pb.authStore.onChange((token, model) => {
+      setUser(model);
+    }, true);
 
-      setIsAdmin(!!adminRes.data);
-      setIsSuperAdmin(!!superRes.data);
-    }
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setTimeout(() => loadRoles(s?.user ?? null), 0);
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      loadRoles(data.session?.user ?? null).finally(() => setLoading(false));
-    });
-
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  return { session, user, isAdmin, isSuperAdmin, loading };
+  // Determine admin roles from user record fields (or check role property)
+  const role = user?.role || user?.type || "";
+  const isAdmin = Boolean(
+    pb.authStore.isValid && (role === "admin" || role === "superadmin" || user?.is_admin)
+  );
+  const isSuperAdmin = Boolean(
+    pb.authStore.isValid && (role === "superadmin" || user?.is_superadmin)
+  );
+
+  return {
+    user,
+    isAuthenticated: pb.authStore.isValid,
+    isAdmin,
+    isSuperAdmin,
+    loading,
+    login: pb.collection("users").authWithPassword.bind(pb.collection("users")),
+    logout: () => pb.authStore.clear(),
+  };
 }

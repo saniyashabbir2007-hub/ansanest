@@ -1,14 +1,15 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
+    // Check if the PocketBase authStore has a valid session token
+    if (!pb.authStore.isValid || !pb.authStore.record) {
       throw redirect({ to: "/auth" });
     }
-    return { user: data.user };
+
+    return { user: pb.authStore.record };
   },
   component: () => <Outlet />,
 });

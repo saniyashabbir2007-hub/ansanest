@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import {
   LayoutDashboard,
   Package,
@@ -28,7 +28,7 @@ function AdminLayout() {
   const navigate = useNavigate();
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    pb.authStore.clear();
     toast.success("Signed out");
     navigate({ to: "/auth" });
   }

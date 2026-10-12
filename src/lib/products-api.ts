@@ -1,5 +1,16 @@
-import { supabase } from "@/integrations/supabase/client";
-
+import { db } from "../firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 
 export type VariantColor = {
   name: string;
@@ -66,6 +77,27 @@ export type Category = {
 
 export type CategoryInput = Omit<Category, "id">;
 
+// -------------------------------------------------------------
+// IMAGE NORMALIZATION & PARSING HELPERS
+// -------------------------------------------------------------
+
+export function resolveImageUrl(url: string | null | undefined): string {
+  if (!url) return "/placeholder.svg";
+  const trimmed = String(url).trim();
+  if (!trimmed) return "/placeholder.svg";
+
+  // Already a valid local relative path
+  if (trimmed.startsWith("/product-images/")) return trimmed;
+
+  // Extract base filename if it was a Supabase URL, URL path, or raw filename
+  const cleanFilename = trimmed.split("/").pop()?.split("?")[0];
+  if (cleanFilename) {
+    return `/product-images/${cleanFilename}`;
+  }
+
+  return trimmed;
+}
+
 export function slugify(text: string): string {
   return text
     .toString()
@@ -77,8 +109,115 @@ export function slugify(text: string): string {
 }
 
 export function normalizeProductColors(colors: any): any[] {
-  if (!Array.isArray(colors)) return [];
-  return colors;
+  return ensureArray(colors);
+}
+
+function ensureArray<T = any>(val: any): T[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeProduct(p: any): Product {
+  if (!p) return p;
+
+  const rawGallery = ensureArray<string>(p.gallery_urls);
+  const rawColors = ensureArray<any>(p.colors);
+  const rawColorVariants = ensureArray<any>(p.color_variants);
+  const rawDimensionVariants = ensureArray<any>(p.dimension_variants);
+
+  return {
+    ...p,
+    image_url: resolveImageUrl(p.image_url),
+    gallery_urls: rawGallery.map((img) => resolveImageUrl(img)),
+    colors: rawColors.map((c) => ({
+      ...c,
+      imageUrl: c.imageUrl ? resolveImageUrl(c.imageUrl) : c.imageUrl,
+    })),
+    color_variants: rawColorVariants.map((cv) => ({
+      ...cv,
+      images: ensureArray<string>(cv.images).map((img) => resolveImageUrl(img)),
+    })),
+    dimension_variants: rawDimensionVariants.map((v) => ({
+      ...v,
+      images: ensureArray<string>(v.images).map((img) => resolveImageUrl(img)),
+      colors: ensureArray<any>(v.colors).map((c) => ({
+        ...c,
+        imageUrl: c.imageUrl ? resolveImageUrl(c.imageUrl) : c.imageUrl,
+        images: ensureArray<string>(c.images).map((img) => resolveImageUrl(img)),
+      })),
+    })),
+  };
+}
+
+// -------------------------------------------------------------
+// CLIENT-SIDE IMAGE COMPRESSION (FOR FUTURE UPLOADS)
+// -------------------------------------------------------------
+
+async function compressImageToWebP(
+  file: File,
+  maxWidth = 1600,
+  quality = 0.82
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+
+            const cleanBase = file.name
+              .replace(/\.[^/.]+$/, "")
+              .toLowerCase()
+              .replace(/[^a-z0-9_-]/g, "-");
+
+            const optimizedFile = new File(
+              [blob],
+              `${cleanBase}-${Date.now().toString().slice(-6)}.webp`,
+              { type: "image/webp" }
+            );
+            resolve(optimizedFile);
+          },
+          "image/webp",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
 }
 
 // -------------------------------------------------------------
@@ -86,44 +225,49 @@ export function normalizeProductColors(colors: any): any[] {
 // -------------------------------------------------------------
 
 export async function listCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (error) throw error;
-  return data ?? [];
+  try {
+    const q = query(collection(db, "categories"), orderBy("sort_order", "asc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as Category;
+      return {
+        ...data,
+        id: docSnap.id,
+        image_url: data.image_url ? resolveImageUrl(data.image_url) : data.image_url,
+      };
+    });
+  } catch {
+    const snapshot = await getDocs(collection(db, "categories"));
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as Category;
+      return {
+        ...data,
+        id: docSnap.id,
+        image_url: data.image_url ? resolveImageUrl(data.image_url) : data.image_url,
+      };
+    });
+  }
 }
 
 export async function createCategory(input: CategoryInput): Promise<Category> {
-  const { data, error } = await supabase
-    .from("categories")
-    .insert([input as any])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as any;
+  const newDocRef = doc(collection(db, "categories"));
+  const record: Category = { ...input, id: newDocRef.id };
+  await setDoc(newDocRef, record);
+  return record;
 }
 
 export async function updateCategory(
   id: string,
   input: Partial<CategoryInput>
 ): Promise<Category> {
-  const { data, error } = await supabase
-    .from("categories")
-    .update(input as any)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as any;
+  const docRef = doc(db, "categories", id);
+  await updateDoc(docRef, input as any);
+  const snap = await getDoc(docRef);
+  return { id: snap.id, ...(snap.data() as any) } as Category;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase.from("categories").delete().eq("id", id);
-  if (error) throw error;
+  await deleteDoc(doc(db, "categories", id));
 }
 
 // -------------------------------------------------------------
@@ -131,100 +275,96 @@ export async function deleteCategory(id: string): Promise<void> {
 // -------------------------------------------------------------
 
 export async function listProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (error) throw error;
-  return (data as any) ?? [];
+  try {
+    const q = query(collection(db, "products"), orderBy("sort_order", "asc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) =>
+      normalizeProduct({ id: docSnap.id, ...docSnap.data() })
+    );
+  } catch {
+    const snapshot = await getDocs(collection(db, "products"));
+    return snapshot.docs.map((docSnap) =>
+      normalizeProduct({ id: docSnap.id, ...docSnap.data() })
+    );
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as any) ?? null;
+  try {
+    const q = query(collection(db, "products"), where("slug", "==", slug));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const docSnap = snapshot.docs[0];
+    return normalizeProduct({ id: docSnap.id, ...docSnap.data() });
+  } catch {
+    return null;
+  }
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as any) ?? null;
+  try {
+    const docRef = doc(db, "products", id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+    return normalizeProduct({ id: snap.id, ...snap.data() });
+  } catch {
+    return null;
+  }
 }
 
 export async function createProduct(input: ProductInput): Promise<Product> {
-  const { data, error } = await supabase
-    .from("products")
-    .insert([input as any])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as any;
+  const newDocRef = doc(collection(db, "products"));
+  const record: Product = { ...input, id: newDocRef.id };
+  await setDoc(newDocRef, record);
+  return normalizeProduct(record);
 }
 
 export async function updateProduct(
   id: string,
   input: Partial<ProductInput>
 ): Promise<Product> {
-  const { data, error } = await supabase
-    .from("products")
-    .update(input as any)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as any;
+  const docRef = doc(db, "products", id);
+  await updateDoc(docRef, input as any);
+  const snap = await getDoc(docRef);
+  return normalizeProduct({ id: snap.id, ...(snap.data() as any) });
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) throw error;
+  await deleteDoc(doc(db, "products", id));
 }
 
+// -------------------------------------------------------------
+// MEDIA UPLOAD
+// -------------------------------------------------------------
+
 export async function uploadProductImage(file: File): Promise<string> {
-  const ext = file.name.split(".").pop();
-  const path = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
+  const optimizedFile = await compressImageToWebP(file);
+  const formData = new FormData();
+  formData.append("file", optimizedFile);
 
-  const { error: uploadError } = await supabase.storage
-    .from("product-images")
-    .upload(path, file);
-
-  if (uploadError) throw uploadError;
-
-  const { data } = supabase.storage
-    .from("product-images")
-    .getPublicUrl(path);
-
-  return data.publicUrl;
+  const response = await fetch("/api/upload-image", {
+    method: "POST",
+    body: formData,
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data.url;
+  }
+  throw new Error("Failed to upload image file");
 }
 
 export async function uploadProductVideo(file: File): Promise<string> {
-  const ext = file.name.split(".").pop();
-  const path = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("product-videos")
-    .upload(path, file);
-
-  if (uploadError) throw uploadError;
-
-  const { data } = supabase.storage
-    .from("product-videos")
-    .getPublicUrl(path);
-
-  return data.publicUrl;
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/upload-video", {
+    method: "POST",
+    body: formData,
+  });
+  if (response.ok) {
+    const data = await response.json();
+    return data.url;
+  }
+  throw new Error("Failed to upload video file");
 }
 
 // -------------------------------------------------------------
@@ -232,22 +372,17 @@ export async function uploadProductVideo(file: File): Promise<string> {
 // -------------------------------------------------------------
 
 export async function listProductReviews(productId: string): Promise<any[]> {
-  const { data, error } = await (supabase as any)
-    .from("reviews")
-    .select("*")
-    .eq("product_id", productId)
-    .eq("approved", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    const fallback = await (supabase as any)
-      .from("reviews")
-      .select("*")
-      .eq("product_id", productId)
-      .order("created_at", { ascending: false });
-    return fallback.data ?? [];
+  try {
+    const q = query(
+      collection(db, "reviews"),
+      where("product_id", "==", productId),
+      where("approved", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
   }
-  return data ?? [];
 }
 
 export async function createProductReview(review: {
@@ -258,7 +393,7 @@ export async function createProductReview(review: {
   review?: string;
   review_text?: string;
 }): Promise<void> {
-  const payload: any = {
+  const payload = {
     product_id: review.product_id,
     customer_name: review.customer_name,
     email: review.email ?? "",
@@ -266,49 +401,37 @@ export async function createProductReview(review: {
     review: review.review || review.review_text || "",
     review_text: review.review_text || review.review || "",
     approved: false,
+    created: new Date().toISOString(),
   };
-
-  const { error } = await (supabase as any).from("reviews").insert([payload]);
-  if (error) throw error;
+  const docRef = doc(collection(db, "reviews"));
+  await setDoc(docRef, payload);
 }
 
 export async function listPendingProductReviews(): Promise<any[]> {
-  const { data, error } = await (supabase as any)
-    .from("reviews")
-    .select("*, products(name, image_url)")
-    .eq("approved", false)
-    .order("created_at", { ascending: false });
-
-  if (error) return [];
-  return data ?? [];
+  try {
+    const q = query(collection(db, "reviews"), where("approved", "==", false));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
+  }
 }
 
 export async function listAllProductReviews(): Promise<any[]> {
-  const { data, error } = await (supabase as any)
-    .from("reviews")
-    .select("*, products(name, image_url)")
-    .order("created_at", { ascending: false });
-
-  if (error) return [];
-  return data ?? [];
+  try {
+    const snapshot = await getDocs(collection(db, "reviews"));
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
+  }
 }
 
 export async function approveProductReview(id: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from("reviews")
-    .update({ approved: true })
-    .eq("id", id);
-
-  if (error) throw error;
+  await updateDoc(doc(db, "reviews", id), { approved: true });
 }
 
 export async function deleteProductReview(id: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from("reviews")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw error;
+  await deleteDoc(doc(db, "reviews", id));
 }
 
 // -------------------------------------------------------------
@@ -330,17 +453,17 @@ export async function mergeProductAsVariant(
 
   const sourceImages = [
     source.image_url,
-    ...(source.gallery_urls ?? []),
+    ...(ensureArray<string>(source.gallery_urls)),
   ].filter(Boolean);
 
-  const sourceColors: VariantColor[] = Array.isArray(source.color_variants)
-    ? source.color_variants.map((c: any) => ({
-        name: c.name || "Default Color",
-        images: c.images || [],
-      }))
-    : [];
+  const sourceColors: VariantColor[] = ensureArray(source.color_variants).map(
+    (c: any) => ({
+      name: c.name || "Default Color",
+      images: ensureArray(c.images),
+    })
+  );
 
-  let existingVariants = target.dimension_variants ?? [];
+  let existingVariants = ensureArray<DimensionVariant>(target.dimension_variants);
 
   if (existingVariants.length === 0) {
     existingVariants = [
@@ -352,13 +475,14 @@ export async function mergeProductAsVariant(
         price: Number(target.price) || 0,
         stock: 10,
         is_default: true,
-        images: [target.image_url, ...(target.gallery_urls ?? [])].filter(Boolean),
-        colors: Array.isArray(target.color_variants)
-          ? target.color_variants.map((c: any) => ({
-              name: c.name || "Default Color",
-              images: c.images || [],
-            }))
-          : [],
+        images: [
+          target.image_url,
+          ...(ensureArray<string>(target.gallery_urls)),
+        ].filter(Boolean),
+        colors: ensureArray(target.color_variants).map((c: any) => ({
+          name: c.name || "Default Color",
+          images: ensureArray(c.images),
+        })),
       },
     ];
   }
@@ -399,7 +523,7 @@ export async function extractVariantToSeparateProduct(
   const parent = await getProductById(parentProductId);
   if (!parent) throw new Error("Parent product not found.");
 
-  const variants = parent.dimension_variants ?? [];
+  const variants = ensureArray<DimensionVariant>(parent.dimension_variants);
   const variant = variants.find((v) => v.id === variantId);
   if (!variant) throw new Error("Variant not found in product.");
 
@@ -425,10 +549,11 @@ export async function extractVariantToSeparateProduct(
     short_description: parent.short_description,
     description: parent.description,
     features: parent.features,
-    color_variants: variant.colors?.map((c) => ({
-      name: c.name,
-      images: c.images,
-    })) ?? [],
+    color_variants:
+      ensureArray(variant.colors).map((c: any) => ({
+        name: c.name,
+        images: ensureArray(c.images),
+      })),
     dimensions: variant.dimensions || parent.dimensions,
     material: parent.material,
     availability: parent.availability,

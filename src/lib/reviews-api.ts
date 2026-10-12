@@ -1,68 +1,84 @@
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 
-export type Review = {
+export interface Review {
   id: string;
+  product_id?: string;
   customer_name: string;
-  customer_photo_url: string | null;
-  customer_location: string | null;
-  product_name: string | null;
+  email?: string;
   rating: number;
-  review_text: string;
-  review_date: string;
-  is_hidden: boolean;
-  is_featured: boolean;
-  source: string;
-  submitted_by_user_id: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ReviewInput = {
-  customer_name: string;
-  customer_photo_url?: string | null;
-  customer_location?: string | null;
-  product_name?: string | null;
-  rating: number;
-  review_text: string;
-  review_date?: string;
-  is_hidden?: boolean;
-  is_featured?: boolean;
-};
-
-// Public — only visible (non-hidden) reviews, featured first, newest first.
-export async function listPublicReviews(): Promise<Review[]> {
-  const { data, error } = await (supabase as any)
-    .from("reviews")
-    .select("*")
-    .eq("is_hidden", false)
-    .order("is_featured", { ascending: false })
-    .order("review_date", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Review[];
+  review?: string;
+  review_text?: string;
+  approved: boolean;
+  created?: string;
+  updated?: string;
+  [key: string]: any;
 }
 
-// Admin — all reviews (hidden included).
+export type ReviewInput = Partial<Omit<Review, "id" | "created" | "updated">>;
+
+export async function listPublicReviews(): Promise<Review[]> {
+  try {
+    return await pb.collection("reviews").getFullList<Review>({
+      filter: "approved = true",
+      sort: "-created",
+    });
+  } catch (error) {
+    console.error("Error fetching public reviews:", error);
+    return [];
+  }
+}
+
 export async function listAllReviews(): Promise<Review[]> {
-  const { data, error } = await (supabase as any)
-    .from("reviews")
-    .select("*")
-    .order("review_date", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Review[];
+  try {
+    return await pb.collection("reviews").getFullList<Review>({
+      sort: "-created",
+    });
+  } catch (error) {
+    console.error("Error fetching all reviews:", error);
+    return [];
+  }
+}
+
+export async function listProductReviews(productId: string): Promise<Review[]> {
+  try {
+    return await pb.collection("reviews").getFullList<Review>({
+      filter: `product_id="${productId}" && approved=true`,
+      sort: "-created",
+    });
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
+  }
 }
 
 export async function createReview(input: ReviewInput): Promise<Review> {
-  const { data, error } = await (supabase as any).from("reviews").insert(input).select().single();
-  if (error) throw error;
-  return data as Review;
+  const payload = {
+    ...input,
+    approved: input.approved ?? false,
+    review: input.review || input.review_text || "",
+    review_text: input.review_text || input.review || "",
+  };
+  return await pb.collection("reviews").create<Review>(payload);
 }
 
-export async function updateReview(id: string, patch: Partial<ReviewInput>): Promise<void> {
-  const { error } = await (supabase as any).from("reviews").update(patch).eq("id", id);
-  if (error) throw error;
+export const createProductReview = createReview;
+
+export async function updateReview(
+  id: string,
+  input: ReviewInput
+): Promise<Review> {
+  const payload: Record<string, any> = { ...input };
+  if (input.review || input.review_text) {
+    payload.review = input.review || input.review_text;
+    payload.review_text = input.review_text || input.review;
+  }
+  return await pb.collection("reviews").update<Review>(id, payload);
+}
+
+export async function approveReview(id: string): Promise<Review> {
+  return await pb.collection("reviews").update<Review>(id, { approved: true });
 }
 
 export async function deleteReview(id: string): Promise<void> {
-  const { error } = await (supabase as any).from("reviews").delete().eq("id", id);
-  if (error) throw error;
+  await pb.collection("reviews").delete(id);
 }
