@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Lock,
 } from "lucide-react";
-import { listProducts, type Product } from "@/lib/products-api";
+import { listProducts, resolveImageUrl, type Product } from "@/lib/products-api";
 import { BUSINESS } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
 
@@ -29,22 +29,22 @@ function formatRupeePrice(price?: number | string | null): string {
   return `₹${num.toLocaleString("en-IN")}`;
 }
 
-// Utility to extract all image strings regardless of how admin DB nested them
+// Utility to extract all image strings and resolve them to working CDN URLs
 function extractImagesFromObj(obj: any): string[] {
   if (!obj) return [];
   const found: string[] = [];
 
   const addIfStr = (val: any) => {
-    if (
-      typeof val === "string" &&
-      val.trim().length > 0 &&
-      (val.startsWith("http") || val.startsWith("/") || val.startsWith("data:image"))
-    ) {
-      found.push(val.trim());
+    if (typeof val === "string" && val.trim().length > 0) {
+      const resolved = resolveImageUrl(val.trim());
+      if (resolved && resolved !== "/placeholder.svg") {
+        found.push(resolved);
+      }
     }
   };
 
   addIfStr(obj.image_url);
+  addIfStr(obj.imageUrl);
   addIfStr(obj.image);
   addIfStr(obj.swatch_url);
   addIfStr(obj.thumbnail);
@@ -56,6 +56,7 @@ function extractImagesFromObj(obj: any): string[] {
         if (typeof item === "string") addIfStr(item);
         else if (typeof item === "object" && item !== null) {
           addIfStr(item.url);
+          addIfStr(item.imageUrl);
           addIfStr(item.image_url);
           addIfStr(item.image);
         }
@@ -63,7 +64,7 @@ function extractImagesFromObj(obj: any): string[] {
     }
   });
 
-  return found;
+  return Array.from(new Set(found));
 }
 
 export const Route = createFileRoute("/product/$id")({
@@ -122,7 +123,7 @@ function ProductDetailPage() {
   // 2. Active Dimension object
   const activeDimension = dimensionVariants[selectedDimensionIdx] || null;
 
-  // 3. Color Variants: checks nested colors inside the active dimension FIRST, then product root
+  // 3. Color Variants: checks nested colors inside active dimension first, then root arrays
   const activeColorVariants: any[] = useMemo(() => {
     const nested =
       activeDimension?.color_variants ||
@@ -131,24 +132,33 @@ function ProductDetailPage() {
       activeDimension?.color_options;
 
     if (Array.isArray(nested) && nested.length > 0) {
-      return nested.filter(
+      return nested.map((v: any) => {
+        if (typeof v === "string") return { name: v, label: v };
+        return v;
+      }).filter((v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0));
+    }
+
+    // Root color_variants
+    if (Array.isArray(product.color_variants) && product.color_variants.length > 0) {
+      return product.color_variants.filter(
         (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
       );
     }
 
-    const root =
-      product.color_variants ||
-      product.variants ||
-      (Array.isArray(product.colors) && typeof product.colors[0] === "object" ? product.colors : null) ||
-      (Array.isArray(product.color_options) && typeof product.color_options[0] === "object"
-        ? product.color_options
-        : null) ||
-      [];
+    // Root colors array (handles both objects and string lists like ["Mustard Yellow", "Ivory White", ...])
+    if (Array.isArray(product.colors) && product.colors.length > 0) {
+      return product.colors.map((c: any) => {
+        if (typeof c === "string") return { name: c, label: c };
+        return c;
+      }).filter((c: any) => c && (c.name || c.color_name || c.label || extractImagesFromObj(c).length > 0));
+    }
 
-    if (Array.isArray(root) && root.length > 0) {
-      return root.filter(
-        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
-      );
+    // Root color_options
+    if (Array.isArray(product.color_options) && product.color_options.length > 0) {
+      return product.color_options.map((c: any) => {
+        if (typeof c === "string") return { name: c, label: c };
+        return c;
+      });
     }
 
     return [];
@@ -189,10 +199,17 @@ function ProductDetailPage() {
       }
     }
 
-    // Priority 3: Fallback to product root gallery if nothing found
+    // Priority 3: Fallback to product root gallery & main image
     if (images.length === 0) {
       const rootImgs = extractImagesFromObj(product);
       images.push(...rootImgs);
+    }
+
+    if (product.image_url) {
+      const resolvedMain = resolveImageUrl(product.image_url);
+      if (resolvedMain && !images.includes(resolvedMain)) {
+        images.unshift(resolvedMain);
+      }
     }
 
     const uniqueUrls = Array.from(
@@ -213,7 +230,9 @@ function ProductDetailPage() {
       });
     }
 
-    return distinct.length > 0 ? distinct : [{ type: "image", url: product.image_url }];
+    return distinct.length > 0
+      ? distinct
+      : [{ type: "image", url: resolveImageUrl(product.image_url) }];
   }, [product, activeDimension, activeColorVariants, selectedVariantIdx]);
 
   const totalMedia = mediaList.length;
@@ -244,7 +263,9 @@ function ProductDetailPage() {
   const whatsappMessage = encodeURIComponent(
     `Hi ${BUSINESS.name}! I am interested in "${product.name}" (${formatRupeePrice(displayPrice)})${
       selectedColorName ? ` in ${selectedColorName}` : ""
-    }${selectedSizeInfo ? ` | Size: ${selectedSizeInfo}` : ""}.\n\nProduct Link: ${typeof window !== "undefined" ? window.location.href : ""}`
+    }${selectedSizeInfo ? ` | Size: ${selectedSizeInfo}` : ""}.\n\nProduct Link: ${
+      typeof window !== "undefined" ? window.location.href : ""
+    }`
   );
   const quoteMessage = encodeURIComponent(
     `Hi ${BUSINESS.name}! I would like to request a quote for "${product.name}" with custom specifications.`
@@ -331,8 +352,8 @@ function ProductDetailPage() {
                 </div>
               ) : (
                 <img
-                  key={`${selectedDimensionIdx}-${selectedVariantIdx}-${activeSlide}`}
-                  src={activeMedia.url || product.image_url}
+                  key={`${selectedDimensionIdx}-${selectedVariantIdx}-${activeSlide}-${activeMedia.url}`}
+                  src={resolveImageUrl(activeMedia.url) || resolveImageUrl(product.image_url)}
                   alt={product.name}
                   className="h-full w-full object-contain p-2 transition-all duration-300"
                 />
@@ -406,7 +427,7 @@ function ProductDetailPage() {
               {formatRupeePrice(displayPrice)}
             </div>
 
-            {/* 1. SELECT SIZE / DIMENSIONS - COMPACT & HORIZONTAL SCROLL */}
+            {/* 1. SELECT SIZE / DIMENSIONS */}
             {dimensionVariants.length > 0 && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
@@ -467,7 +488,8 @@ function ProductDetailPage() {
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {activeColorVariants.map((variant: any, idx: number) => {
                     const variantImgs = extractImagesFromObj(variant);
-                    const variantThumb = variantImgs[0] || variant.swatch_url;
+                    const rawThumb = variantImgs[0] || variant.swatch_url || variant.imageUrl || variant.image;
+                    const resolvedThumb = rawThumb ? resolveImageUrl(rawThumb) : null;
 
                     return (
                       <button
@@ -484,13 +506,24 @@ function ProductDetailPage() {
                             : "border-border hover:border-foreground/50"
                         }`}
                       >
-                        {variantThumb ? (
-                          <img src={variantThumb} alt="" className="h-full w-full object-cover" />
+                        {resolvedThumb && resolvedThumb !== "/placeholder.svg" ? (
+                          <img
+                            src={resolvedThumb}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
                         ) : (
                           <div
-                            className="h-full w-full"
-                            style={{ backgroundColor: variant.hex || variant.color_code || "#e5e7eb" }}
-                          />
+                            className="h-full w-full flex items-center justify-center text-[8px] font-semibold text-muted-foreground bg-muted"
+                            style={{
+                              backgroundColor: variant.hex || variant.color_code || undefined,
+                            }}
+                          >
+                            {!variant.hex && (variant.name?.[0] || idx + 1)}
+                          </div>
                         )}
                       </button>
                     );
@@ -553,7 +586,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Tabbed Info & Detailed Description */}
+        {/* Tabbed Info */}
         <div className="mt-10 border-t border-border/80 pt-6">
           <div className="flex gap-6 border-b border-border text-xs sm:text-sm font-medium">
             <button
@@ -684,7 +717,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* YOU MAY ALSO LIKE */}
+        {/* You May Also Like */}
         {relatedProducts.length > 0 && (
           <section className="mt-14 border-t border-border/80 pt-8">
             <div className="mb-5 flex items-end justify-between">
