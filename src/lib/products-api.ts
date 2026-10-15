@@ -86,13 +86,30 @@ export function resolveImageUrl(url: string | null | undefined): string {
   const trimmed = String(url).trim();
   if (!trimmed) return "/placeholder.svg";
 
+  // If already an active CDN link (ImgBB account 1, account 2, Cloudinary, data URLs, etc.)
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("data:image")
+  ) {
+    // If it's a dead Supabase URL, extract filename
+    if (trimmed.includes("supabase.co")) {
+      const cleanFilename = trimmed.split("/").pop()?.split("?")[0];
+      if (cleanFilename) {
+        return `/product-images/${decodeURIComponent(cleanFilename)}`;
+      }
+    }
+    return trimmed;
+  }
+
   // Already a valid local relative path
   if (trimmed.startsWith("/product-images/")) return trimmed;
 
-  // Extract base filename if it was a Supabase URL, URL path, or raw filename
+  // Extract base filename if it was a relative filename
   const cleanFilename = trimmed.split("/").pop()?.split("?")[0];
   if (cleanFilename) {
-    return `/product-images/${cleanFilename}`;
+    return `/product-images/${decodeURIComponent(cleanFilename)}`;
   }
 
   return trimmed;
@@ -140,7 +157,7 @@ function normalizeProduct(p: any): Product {
     gallery_urls: rawGallery.map((img) => resolveImageUrl(img)),
     colors: rawColors.map((c) => ({
       ...c,
-      imageUrl: c.imageUrl ? resolveImageUrl(c.imageUrl) : c.imageUrl,
+      imageUrl: c?.imageUrl ? resolveImageUrl(c.imageUrl) : c?.imageUrl,
     })),
     color_variants: rawColorVariants.map((cv) => ({
       ...cv,
@@ -151,8 +168,8 @@ function normalizeProduct(p: any): Product {
       images: ensureArray<string>(v.images).map((img) => resolveImageUrl(img)),
       colors: ensureArray<any>(v.colors).map((c) => ({
         ...c,
-        imageUrl: c.imageUrl ? resolveImageUrl(c.imageUrl) : c.imageUrl,
-        images: ensureArray<string>(c.images).map((img) => resolveImageUrl(img)),
+        imageUrl: c?.imageUrl ? resolveImageUrl(c.imageUrl) : c?.imageUrl,
+        images: ensureArray<string>(c?.images).map((img) => resolveImageUrl(img)),
       })),
     })),
   };
@@ -537,7 +554,7 @@ export async function extractVariantToSeparateProduct(
   });
 
   const newProduct = await createProduct({
-    name: variant.name || `${parent.name} - Variant`,
+    name: variant.name || `${parent.name} Variant`,
     slug: slugify(`${parent.name}-${variant.name}-${Date.now().toString().slice(-4)}`),
     category: parent.category,
     sub_type: variant.seats || parent.sub_type,

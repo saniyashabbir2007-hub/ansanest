@@ -36,3 +36,15 @@ dist-ssr
 .env.local
 public/product-images/
 .env
+.env*
+# Migration & Maintenance Scripts
+*.csv
+imgbb-manifest.json
+sync-full-catalog.ts
+replace-supabase-urls.ts
+fix-colors.ts
+inspect-colors.ts
+audit-broken-images.ts
+check-urls.ts
+upload-and-sync.ts
+scan-missing.ts

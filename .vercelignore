@@ -1,0 +1,8 @@
+public/product-images
+node_modules
+.git
+
+node_modules
+.vercel
+public/product-images
+*.log
