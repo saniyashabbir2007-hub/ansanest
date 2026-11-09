@@ -19,7 +19,6 @@ import { ProductCard } from "@/components/site/ProductCard";
 interface MediaItem {
   type: "image" | "video";
   url: string;
-  poster?: string;
 }
 
 interface NormalizedColor {
@@ -27,7 +26,7 @@ interface NormalizedColor {
   name: string;
   hex: string;
   thumb: string;
-  images: string[];
+  targetSlideIndex: number;
   price?: number | null;
 }
 
@@ -57,6 +56,9 @@ const COLOR_MAP: Record<string, string> = {
   orange: "#FFA500",
   "coral orange": "#FF7F50",
   "navy blue": "#000080",
+  "neavy blue": "#000080",
+  "neavy blue velvet": "#1E2A4A",
+  "navy blue velvet": "#1E2A4A",
   blue: "#1E3A8A",
   "royal blue": "#4169E1",
   black: "#1A1A1A",
@@ -82,7 +84,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 function getColorHex(name: string): string {
-  if (!name) return "#C4C4C4";
+  if (!name) return "#A3A3A3";
   const clean = name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
 
   if (COLOR_MAP[clean]) return COLOR_MAP[clean];
@@ -98,7 +100,7 @@ function getColorHex(name: string): string {
     hash = clean.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 50%, 65%)`;
+  return `hsl(${hue}, 45%, 55%)`;
 }
 
 function isLegitimateColorName(name: string): boolean {
@@ -223,7 +225,63 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. DIMENSION VARIANTS
+  // 1. ALL IMAGES (COMPLETE, IMMUTABLE LIST)
+  const allImages = useMemo(() => {
+    const list: string[] = [];
+    if (product.image_url) {
+      const main = sanitizeImgUrl(product.image_url);
+      if (main && main !== "/placeholder.svg") list.push(main);
+    }
+    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
+    extractUrls(product.images).forEach((u) => list.push(u));
+
+    // Gather images stored in dimension variants
+    const dims = product.dimension_variants || product.size_variants || [];
+    if (Array.isArray(dims)) {
+      dims.forEach((d: any) => {
+        extractUrls(d?.images).forEach((u) => list.push(u));
+        if (Array.isArray(d?.colors)) {
+          d.colors.forEach((c: any) => {
+            extractUrls(c?.images).forEach((u) => list.push(u));
+          });
+        }
+      });
+    }
+
+    // Gather images stored in standalone color variants
+    const cols = product.color_variants || [];
+    if (Array.isArray(cols)) {
+      cols.forEach((c: any) => {
+        extractUrls(c?.images).forEach((u) => list.push(u));
+      });
+    }
+
+    const unique = Array.from(new Set(list.filter(Boolean)));
+    return unique.length > 0 ? unique : [sanitizeImgUrl(product.image_url) || "/placeholder.svg"];
+  }, [product]);
+
+  // STABLE MEDIA LIST: 100% of images remain accessible across all variants
+  const mediaList: MediaItem[] = useMemo(() => {
+    const list: MediaItem[] = allImages.map((url) => ({
+      type: "image",
+      url,
+    }));
+
+    const videoUrl = product.video_url || product.video || product.videoUrl;
+    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
+      list.push({
+        type: "video",
+        url: videoUrl.trim(),
+      });
+    }
+
+    return list;
+  }, [allImages, product]);
+
+  const totalMedia = mediaList.length;
+  const primaryFallback = allImages[0] || "/placeholder.svg";
+
+  // 2. DIMENSION VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -241,26 +299,7 @@ function ProductDetailPage() {
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
   const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. ROOT GALLERY IMAGES
-  const allProductImages = useMemo(() => {
-    const list: string[] = [];
-    if (product.image_url) {
-      const main = sanitizeImgUrl(product.image_url);
-      if (main && main !== "/placeholder.svg") list.push(main);
-    }
-    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
-    extractUrls(product.images).forEach((u) => list.push(u));
-    return Array.from(new Set(list));
-  }, [product]);
-
-  const primaryFallback = useMemo(() => {
-    const direct = sanitizeImgUrl(product.image_url);
-    if (direct && !direct.includes("imgbb.com")) return direct;
-    const localBackup = allProductImages.find((u) => !u.includes("imgbb.com"));
-    return localBackup || direct || "/placeholder.svg";
-  }, [product.image_url, allProductImages]);
-
-  // 3. COLOR VARIANTS
+  // 3. COLOR VARIANTS WITH DETERMINISTIC SLIDE TARGETS
   const availableColors: NormalizedColor[] = useMemo(() => {
     let rawList: any[] = [];
 
@@ -306,12 +345,34 @@ function ProductDetailPage() {
       const hex = explicitColorCode || getColorHex(cleanName);
       const thumb = sanitizeImgUrl(swatchUrl);
 
+      // Determine the slide target for this color:
+      let targetSlideIndex = 0;
+
+      // 1. Check if color has an explicit image matching our gallery
+      if (images.length > 0) {
+        const found = allImages.findIndex((img) => img === images[0]);
+        if (found !== -1) targetSlideIndex = found;
+      } else if (thumb) {
+        const found = allImages.findIndex((img) => img === thumb);
+        if (found !== -1) targetSlideIndex = found;
+      } else {
+        // 2. Keyword match against image URLs (e.g., "green", "pink", "brown")
+        const firstWord = cleanName.toLowerCase().split(" ")[0];
+        const keywordMatch = allImages.findIndex((img) => img.toLowerCase().includes(firstWord));
+        if (keywordMatch !== -1) {
+          targetSlideIndex = keywordMatch;
+        } else {
+          // 3. Fallback: map 1-to-1 to gallery slide if available
+          targetSlideIndex = Math.min(idx, allImages.length - 1);
+        }
+      }
+
       candidateColors.push({
         id: c?.id || `color-${idx}`,
         name: cleanName,
         hex,
         thumb,
-        images: images.map((u) => sanitizeImgUrl(u)),
+        targetSlideIndex,
         price,
       });
     }
@@ -319,7 +380,7 @@ function ProductDetailPage() {
     if (candidateColors.length < 2) return [];
 
     return candidateColors;
-  }, [product, activeDimension]);
+  }, [product, activeDimension, allImages]);
 
   const hasColors = availableColors.length >= 2;
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
@@ -327,54 +388,7 @@ function ProductDetailPage() {
 
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // 4. FULL MEDIA POOL
-  const mediaList: MediaItem[] = useMemo(() => {
-    let urls: string[] = [];
-
-    // Dimension specific images
-    if (activeDimension) {
-      const dimImgs = extractUrls(activeDimension.images || activeDimension.gallery);
-      if (dimImgs.length > 0) {
-        urls.push(...dimImgs);
-      }
-    }
-
-    // Color specific images
-    if (activeColor?.images && activeColor.images.length > 0) {
-      urls.push(...activeColor.images);
-    }
-
-    // Entire product gallery as main backbone
-    urls.push(...allProductImages);
-
-    const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
-
-    const distinct: MediaItem[] = uniqueUrls.map((url) => ({
-      type: "image",
-      url,
-    }));
-
-    const videoUrl = product.video_url || product.video || product.videoUrl;
-    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
-      distinct.push({
-        type: "video",
-        url: videoUrl,
-        poster: distinct[0]?.url,
-      });
-    }
-
-    return distinct.length > 0
-      ? distinct
-      : [{ type: "image", url: sanitizeImgUrl(product.image_url) || "/placeholder.svg" }];
-  }, [product, activeDimension, activeColor, allProductImages]);
-
-  const totalMedia = mediaList.length;
-
-  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
-  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
-  const activeMedia = mediaList[activeSlide] || mediaList[0];
-
-  // DIMENSION CHANGE: Shifts gallery to that dimension's image
+  // DIMENSION CHANGE HANDLER
   const handleDimensionChange = (newDimIdx: number) => {
     setSelectedDimensionIdx(newDimIdx);
     setSelectedColorIdx(0);
@@ -383,7 +397,7 @@ function ProductDetailPage() {
     const dimImages = extractUrls(nextDim?.images || nextDim?.gallery);
 
     if (dimImages.length > 0) {
-      const matchIdx = mediaList.findIndex((m) => m.url === dimImages[0]);
+      const matchIdx = allImages.findIndex((img) => img === dimImages[0]);
       if (matchIdx !== -1) {
         setActiveSlide(matchIdx);
         return;
@@ -392,45 +406,22 @@ function ProductDetailPage() {
     setActiveSlide(0);
   };
 
-  // COLOR CLICK: Shifts gallery to that color's image immediately
+  // COLOR CLICK HANDLER: Instantly changes the main image
   const handleColorClick = (idx: number) => {
     setSelectedColorIdx(idx);
     const targetColor = availableColors[idx];
     if (!targetColor) return;
 
-    // 1. If color has dedicated variant images
-    if (targetColor.images && targetColor.images.length > 0) {
-      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.images[0]);
-      if (matchIdx !== -1) {
-        setActiveSlide(matchIdx);
-        return;
-      }
-    }
-
-    // 2. If thumbnail exists in mediaList
-    if (targetColor.thumb) {
-      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.thumb);
-      if (matchIdx !== -1) {
-        setActiveSlide(matchIdx);
-        return;
-      }
-    }
-
-    // 3. Fallback: match by sequence or keyword
-    const colorKeyword = targetColor.name.toLowerCase().split(" ")[0];
-    const nameMatchIdx = mediaList.findIndex((m) =>
-      m.url.toLowerCase().includes(colorKeyword)
-    );
-    if (nameMatchIdx !== -1) {
-      setActiveSlide(nameMatchIdx);
-      return;
-    }
-
-    // 4. Default: cycle smoothly across available slides
-    if (idx < totalMedia) {
-      setActiveSlide(idx);
+    if (targetColor.targetSlideIndex >= 0 && targetColor.targetSlideIndex < totalMedia) {
+      setActiveSlide(targetColor.targetSlideIndex);
+    } else {
+      setActiveSlide(Math.min(idx, totalMedia - 1));
     }
   };
+
+  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
+  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
+  const activeMedia = mediaList[activeSlide] || mediaList[0] || { type: "image", url: primaryFallback };
 
   const displayPrice = useMemo(() => {
     if (activeColor?.price) return activeColor.price;
@@ -536,8 +527,8 @@ function ProductDetailPage() {
                 </div>
               ) : (
                 <img
-                  key={`${selectedDimensionIdx}-${selectedColorIdx}-${activeSlide}-${activeMedia.url}`}
-                  src={activeMedia.url}
+                  key={activeMedia.url}
+                  src={activeMedia.url || primaryFallback}
                   alt={product.name}
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-contain p-2 transition-all duration-300"
