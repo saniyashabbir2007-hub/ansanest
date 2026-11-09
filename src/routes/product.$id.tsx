@@ -102,6 +102,10 @@ function getSwatchHex(name?: string, fallbackHex?: string): string {
 function cleanDirectUrl(url: any): string {
   if (!url || typeof url !== "string") return "";
   let trimmed = url.trim();
+  if (!trimmed || trimmed === "/placeholder.svg" || trimmed === "undefined" || trimmed === "null") return "";
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("/")) {
+    return "";
+  }
   if (trimmed.includes("ibb.co/") && !trimmed.includes("i.ibb.co/")) {
     trimmed = trimmed.replace("https://ibb.co/", "https://i.ibb.co/").replace("http://ibb.co/", "https://i.ibb.co/");
   }
@@ -114,7 +118,7 @@ function extractImagesFromObj(obj: any): string[] {
 
   const add = (val: any) => {
     const s = cleanDirectUrl(val);
-    if (s && s !== "/placeholder.svg" && !found.includes(s)) {
+    if (s && !found.includes(s)) {
       found.push(s);
     }
   };
@@ -233,58 +237,57 @@ function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping" | "warranty">("desc");
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [brokenUrls, setBrokenUrls] = useState<Record<string, boolean>>({});
 
-  // 3. Media List (Gallery & Video)
+  // 3. Media List Construction (Strictly Filters Empty Strings & Broken Images)
   const mediaList: MediaItem[] = useMemo(() => {
     const currentVariant = activeColorVariants[selectedVariantIdx];
     let candidateImages: string[] = [];
 
+    // 1. Variant specific images
     if (currentVariant) {
       candidateImages.push(...extractImagesFromObj(currentVariant));
     }
 
+    // 2. Active dimension images
     if (candidateImages.length === 0 && activeDimension) {
       candidateImages.push(...extractImagesFromObj(activeDimension));
     }
 
+    // 3. Root product gallery images
     if (candidateImages.length === 0) {
       candidateImages.push(...extractImagesFromObj(product));
     }
 
-    const uniqueImages = Array.from(new Set(candidateImages.filter(Boolean)));
-    const media: MediaItem[] = (
-      uniqueImages.length > 0 ? uniqueImages : [cleanDirectUrl(product.image_url) || "/placeholder.svg"]
-    ).map((url) => ({
+    // Discard any empty, duplicate, or previously failed URLs
+    const validImages = Array.from(new Set(candidateImages))
+      .filter((u) => u && typeof u === "string" && u.trim().length > 5 && !brokenUrls[u]);
+
+    // Ensure there is at least one image
+    const finalImages = validImages.length > 0 
+      ? validImages 
+      : [cleanDirectUrl(product.image_url) || "/placeholder.svg"];
+
+    const media: MediaItem[] = finalImages.map((url) => ({
       type: "image",
       url,
     }));
 
-    const videoUrl = product.video_url || product.video || product.videoUrl;
-    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
+    const videoUrl = cleanDirectUrl(product.video_url || product.video || product.videoUrl);
+    if (videoUrl) {
       media.push({
         type: "video",
-        url: videoUrl.trim(),
+        url: videoUrl,
         poster: media[0]?.url,
       });
     }
 
     return media;
-  }, [product, activeDimension, activeColorVariants, selectedVariantIdx]);
+  }, [product, activeDimension, activeColorVariants, selectedVariantIdx, brokenUrls]);
 
   const totalMedia = mediaList.length;
-  const primaryFallbackImage = cleanDirectUrl(product.image_url) || mediaList[0]?.url || "/placeholder.svg";
 
-  // Preload images into memory
-  useEffect(() => {
-    mediaList.forEach((item) => {
-      if (item.type === "image" && item.url) {
-        const img = new Image();
-        img.src = item.url;
-      }
-    });
-  }, [mediaList]);
-
+  // Keep activeSlide valid whenever mediaList changes
   useEffect(() => {
     if (activeSlide >= totalMedia) {
       setActiveSlide(0);
@@ -293,7 +296,7 @@ function ProductDetailPage() {
 
   const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
   const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
-  const activeMedia = mediaList[activeSlide] || mediaList[0];
+  const activeMedia = mediaList[activeSlide] || mediaList[0] || { type: "image", url: "/placeholder.svg" };
 
   const handleDimensionChange = (idx: number) => {
     setSelectedDimensionIdx(idx);
@@ -427,8 +430,6 @@ function ProductDetailPage() {
     return [...matched, ...otherProducts].slice(0, 8);
   }, [products, product]);
 
-  const resolvedCurrentUrl = failedImages[activeMedia.url] ? primaryFallbackImage : activeMedia.url;
-
   return (
     <div className="min-h-screen bg-background py-6 md:py-10">
       <div className="container-px mx-auto max-w-7xl">
@@ -498,17 +499,16 @@ function ProductDetailPage() {
                 </div>
               ) : (
                 <img
-                  key={resolvedCurrentUrl}
-                  src={resolvedCurrentUrl}
+                  key={activeMedia.url}
+                  src={activeMedia.url}
                   alt={product.name}
                   loading="eager"
                   decoding="async"
                   className="h-full w-full object-contain p-2 transition-all duration-200 cursor-zoom-in"
                   onClick={() => setIsLightboxOpen(true)}
                   onError={() => {
-                    if (!failedImages[activeMedia.url]) {
-                      setFailedImages((prev) => ({ ...prev, [activeMedia.url]: true }));
-                    }
+                    // Instantly prune broken or unavailable image so slider never breaks
+                    setBrokenUrls((prev) => ({ ...prev, [activeMedia.url]: true }));
                   }}
                 />
               )}
@@ -540,7 +540,7 @@ function ProductDetailPage() {
               <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1.5 scroll-smooth">
                 {mediaList.map((item, idx) => (
                   <button
-                    key={idx}
+                    key={`${item.url}-${idx}`}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
                     className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all cursor-pointer ${
@@ -558,8 +558,8 @@ function ProductDetailPage() {
                         src={item.url}
                         alt=""
                         className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
+                        onError={() => {
+                          setBrokenUrls((prev) => ({ ...prev, [item.url]: true }));
                         }}
                       />
                     )}
@@ -1050,7 +1050,7 @@ function ProductDetailPage() {
 
           <div className="relative max-h-[90vh] max-w-[90vw]">
             <img
-              src={resolvedCurrentUrl}
+              src={activeMedia.url}
               alt={product.name}
               className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg"
             />
