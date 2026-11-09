@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Star,
   MessageCircle,
@@ -45,14 +45,14 @@ const COLOR_MAP: Record<string, string> = {
   "charcoal gray": "#36454F",
   "mustard yellow": "#E1AD01",
   yellow: "#EAB308",
-  "ivory white": "#FDFBF7",
-  ivory: "#FFFFF0",
+  "ivory white": "#FAF6F0",
+  ivory: "#FBF8F1",
   white: "#FFFFFF",
   "emerald green": "#50C878",
   "olive green": "#556B2F",
   green: "#2E8B57",
   "forest green": "#1B4D3E",
-  beige: "#F5F5DC",
+  beige: "#E8D8C8",
   "rust orange": "#C45508",
   orange: "#FFA500",
   "coral orange": "#FF7F50",
@@ -73,16 +73,16 @@ const COLOR_MAP: Record<string, string> = {
   "classic red": "#B91C1C",
   "burgundy red": "#800020",
   burgundy: "#800020",
-  pink: "#EC4899",
+  pink: "#F4B6C2",
   rose: "#F43F5E",
-  "blush pink": "#FFB6C1",
-  "blush rose": "#FFB6C1",
+  "blush pink": "#F4B6C2",
+  "blush rose": "#F4B6C2",
   "light grey": "#D3D3D3",
   "light gray": "#D3D3D3",
 };
 
 function getColorHex(name: string): string {
-  if (!name) return "#A3A3A3";
+  if (!name) return "#C4C4C4";
   const clean = name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
 
   if (COLOR_MAP[clean]) return COLOR_MAP[clean];
@@ -98,7 +98,7 @@ function getColorHex(name: string): string {
     hash = clean.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 45%, 55%)`;
+  return `hsl(${hue}, 50%, 65%)`;
 }
 
 function isLegitimateColorName(name: string): boolean {
@@ -260,7 +260,7 @@ function ProductDetailPage() {
     return localBackup || direct || "/placeholder.svg";
   }, [product.image_url, allProductImages]);
 
-  // 3. COLOR VARIANTS: PARSES COLORS FROM ACTIVE DIMENSION OR PRODUCT ROOT
+  // 3. COLOR VARIANTS
   const availableColors: NormalizedColor[] = useMemo(() => {
     let rawList: any[] = [];
 
@@ -325,36 +325,27 @@ function ProductDetailPage() {
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
   const [activeSlide, setActiveSlide] = useState(0);
 
-  // Sync active color and reset slide when dimension changes
-  const handleDimensionChange = (newDimIdx: number) => {
-    setSelectedDimensionIdx(newDimIdx);
-    setSelectedColorIdx(0);
-    setActiveSlide(0);
-  };
-
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // 4. MEDIA LIST: Prioritizes active dimension / active color, falls back to full gallery
+  // 4. FULL MEDIA POOL
   const mediaList: MediaItem[] = useMemo(() => {
     let urls: string[] = [];
 
-    // 1. If color has explicit images, use them
-    if (activeColor?.images && activeColor.images.length > 0) {
-      urls.push(...activeColor.images);
-    }
-
-    // 2. If dimension has explicit images, use them
+    // Dimension specific images
     if (activeDimension) {
       const dimImgs = extractUrls(activeDimension.images || activeDimension.gallery);
-      if (dimImgs.length > 0 && urls.length === 0) {
+      if (dimImgs.length > 0) {
         urls.push(...dimImgs);
       }
     }
 
-    // 3. Fallback: full product gallery
-    if (urls.length === 0) {
-      urls.push(...allProductImages);
+    // Color specific images
+    if (activeColor?.images && activeColor.images.length > 0) {
+      urls.push(...activeColor.images);
     }
+
+    // Entire product gallery as main backbone
+    urls.push(...allProductImages);
 
     const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
 
@@ -383,19 +374,40 @@ function ProductDetailPage() {
   const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
   const activeMedia = mediaList[activeSlide] || mediaList[0];
 
-  // When clicking a color swatch:
+  // DIMENSION CHANGE: Shifts gallery to that dimension's image
+  const handleDimensionChange = (newDimIdx: number) => {
+    setSelectedDimensionIdx(newDimIdx);
+    setSelectedColorIdx(0);
+
+    const nextDim = dimensionVariants[newDimIdx];
+    const dimImages = extractUrls(nextDim?.images || nextDim?.gallery);
+
+    if (dimImages.length > 0) {
+      const matchIdx = mediaList.findIndex((m) => m.url === dimImages[0]);
+      if (matchIdx !== -1) {
+        setActiveSlide(matchIdx);
+        return;
+      }
+    }
+    setActiveSlide(0);
+  };
+
+  // COLOR CLICK: Shifts gallery to that color's image immediately
   const handleColorClick = (idx: number) => {
     setSelectedColorIdx(idx);
     const targetColor = availableColors[idx];
     if (!targetColor) return;
 
-    // If color has dedicated images, reset to first image
+    // 1. If color has dedicated variant images
     if (targetColor.images && targetColor.images.length > 0) {
-      setActiveSlide(0);
-      return;
+      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.images[0]);
+      if (matchIdx !== -1) {
+        setActiveSlide(matchIdx);
+        return;
+      }
     }
 
-    // If targetColor has a thumb that exists in the gallery, switch to that slide
+    // 2. If thumbnail exists in mediaList
     if (targetColor.thumb) {
       const matchIdx = mediaList.findIndex((m) => m.url === targetColor.thumb);
       if (matchIdx !== -1) {
@@ -404,7 +416,7 @@ function ProductDetailPage() {
       }
     }
 
-    // Check if gallery has an image matching the color name in the URL
+    // 3. Fallback: match by sequence or keyword
     const colorKeyword = targetColor.name.toLowerCase().split(" ")[0];
     const nameMatchIdx = mediaList.findIndex((m) =>
       m.url.toLowerCase().includes(colorKeyword)
@@ -414,7 +426,7 @@ function ProductDetailPage() {
       return;
     }
 
-    // Otherwise jump to index position in gallery if within bounds
+    // 4. Default: cycle smoothly across available slides
     if (idx < totalMedia) {
       setActiveSlide(idx);
     }
@@ -659,7 +671,7 @@ function ProductDetailPage() {
               </div>
             )}
 
-            {/* 2. SELECT COLOR (Always renders color background even without image thumbnail) */}
+            {/* 2. SELECT COLOR */}
             {hasColors && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
@@ -671,6 +683,7 @@ function ProductDetailPage() {
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {availableColors.map((color, idx) => {
                     const isSelected = selectedColorIdx === idx;
+                    const isWhiteColor = color.hex.toLowerCase() === "#ffffff" || color.name.toLowerCase().includes("white");
 
                     return (
                       <button
@@ -679,10 +692,12 @@ function ProductDetailPage() {
                         title={color.name}
                         onClick={() => handleColorClick(idx)}
                         aria-label={color.name}
-                        className={`group relative h-9 w-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                        className={`group relative h-9 w-9 rounded-full overflow-hidden border transition-all cursor-pointer ${
                           isSelected
                             ? "border-emerald ring-2 ring-emerald/40 scale-110 shadow-sm"
-                            : "border-border/80 hover:scale-105 hover:border-foreground/40"
+                            : isWhiteColor
+                            ? "border-neutral-300 hover:border-neutral-500"
+                            : "border-transparent hover:scale-105"
                         }`}
                         style={{ backgroundColor: color.hex }}
                       >
