@@ -174,6 +174,15 @@ function extractUrls(target: any): string[] {
     add(target.swatch_url);
     add(target.url);
     add(target.thumbnail);
+
+    const subArrays = [target.images, target.gallery, target.gallery_urls, target.photos, target.image_urls];
+    subArrays.forEach((arr) => {
+      if (Array.isArray(arr)) {
+        arr.forEach((item) => {
+          extractUrls(item).forEach((u) => found.push(u));
+        });
+      }
+    });
   }
 
   return Array.from(new Set(found));
@@ -216,7 +225,7 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. SIZES / DIMENSION VARIANTS
+  // 1. DIMENSION / SIZE VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -234,15 +243,8 @@ function ProductDetailPage() {
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
   const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. ONLY THIS PRODUCT'S OWN GALLERY (EXACTLY 6 TO 10 PHOTOS, NEVER 69!)
-  const currentImages = useMemo(() => {
-    // If the active dimension has its own exclusive images, use them
-    const dimImgs = extractUrls(activeDimension?.images || activeDimension?.gallery);
-    if (dimImgs.length > 0) {
-      return dimImgs;
-    }
-
-    // Otherwise use this product's own images
+  // 2. PRODUCT'S COMPLETE GALLERY (NEVER COLLAPSES TO 1/1)
+  const productGallery = useMemo(() => {
     const list: string[] = [];
     if (product.image_url) {
       const main = sanitizeImgUrl(product.image_url);
@@ -253,13 +255,13 @@ function ProductDetailPage() {
 
     const unique = Array.from(new Set(list.filter(Boolean)));
     return unique.length > 0 ? unique : [sanitizeImgUrl(product.image_url) || "/placeholder.svg"];
-  }, [product, activeDimension]);
+  }, [product]);
 
-  const primaryFallback = currentImages[0] || "/placeholder.svg";
+  const primaryFallback = productGallery[0] || "/placeholder.svg";
 
-  // MEDIA LIST: strictly for THIS product/dimension
+  // MEDIA CAROUSEL LIST
   const mediaList: MediaItem[] = useMemo(() => {
-    const list: MediaItem[] = currentImages.map((url) => ({
+    const list: MediaItem[] = productGallery.map((url) => ({
       type: "image",
       url,
     }));
@@ -273,7 +275,7 @@ function ProductDetailPage() {
     }
 
     return list;
-  }, [currentImages, product]);
+  }, [productGallery, product]);
 
   const totalMedia = mediaList.length;
 
@@ -323,22 +325,22 @@ function ProductDetailPage() {
       const hex = explicitColorCode || getColorHex(cleanName);
       const thumb = sanitizeImgUrl(swatchUrl);
 
-      // Map color to an image in currentImages
+      // Map color directly to slide index in productGallery
       let targetSlideIndex = 0;
       if (images.length > 0) {
-        const found = currentImages.findIndex((img) => img === images[0]);
+        const found = productGallery.findIndex((img) => img === images[0]);
         if (found !== -1) targetSlideIndex = found;
       } else if (thumb) {
-        const found = currentImages.findIndex((img) => img === thumb);
+        const found = productGallery.findIndex((img) => img === thumb);
         if (found !== -1) targetSlideIndex = found;
       } else {
         const firstWord = cleanName.toLowerCase().split(" ")[0];
-        const keywordMatch = currentImages.findIndex((img) => img.toLowerCase().includes(firstWord));
+        const keywordMatch = productGallery.findIndex((img) => img.toLowerCase().includes(firstWord));
         if (keywordMatch !== -1) {
           targetSlideIndex = keywordMatch;
         } else {
           // Direct 1-to-1 index matching
-          targetSlideIndex = Math.min(idx, currentImages.length - 1);
+          targetSlideIndex = Math.min(idx, productGallery.length - 1);
         }
       }
 
@@ -355,7 +357,7 @@ function ProductDetailPage() {
     if (candidateColors.length < 2) return [];
 
     return candidateColors;
-  }, [product, activeDimension, currentImages]);
+  }, [product, activeDimension, productGallery]);
 
   const hasColors = availableColors.length >= 2;
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
@@ -363,14 +365,25 @@ function ProductDetailPage() {
 
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // DIMENSION CHANGE: Resets slide to 0 and clears selection smoothly
+  // DIMENSION CHANGE: Selects dimension without emptying the gallery
   const handleDimensionChange = (newDimIdx: number) => {
     setSelectedDimensionIdx(newDimIdx);
     setSelectedColorIdx(0);
+
+    const nextDim = dimensionVariants[newDimIdx];
+    const dimImages = extractUrls(nextDim?.images || nextDim?.gallery);
+
+    if (dimImages.length > 0) {
+      const matchIdx = productGallery.findIndex((img) => img === dimImages[0]);
+      if (matchIdx !== -1) {
+        setActiveSlide(matchIdx);
+        return;
+      }
+    }
     setActiveSlide(0);
   };
 
-  // COLOR CLICK: Directly switches carousel to that color's photo
+  // COLOR CLICK: Switches directly to that color's photo
   const handleColorClick = (idx: number) => {
     setSelectedColorIdx(idx);
     const targetColor = availableColors[idx];
