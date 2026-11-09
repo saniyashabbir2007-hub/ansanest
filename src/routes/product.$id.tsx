@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Star,
   MessageCircle,
@@ -51,7 +51,7 @@ const COLOR_MAP: Record<string, string> = {
   "emerald green": "#50C878",
   "olive green": "#556B2F",
   green: "#2E8B57",
-  "forest green": "#228B22",
+  "forest green": "#1B4D3E",
   beige: "#F5F5DC",
   "rust orange": "#C45508",
   orange: "#FFA500",
@@ -75,6 +75,7 @@ const COLOR_MAP: Record<string, string> = {
   burgundy: "#800020",
   pink: "#EC4899",
   rose: "#F43F5E",
+  "blush pink": "#FFB6C1",
   "blush rose": "#FFB6C1",
   "light grey": "#D3D3D3",
   "light gray": "#D3D3D3",
@@ -97,7 +98,7 @@ function getColorHex(name: string): string {
     hash = clean.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 40%, 65%)`;
+  return `hsl(${hue}, 45%, 55%)`;
 }
 
 function isLegitimateColorName(name: string): boolean {
@@ -123,10 +124,9 @@ function isLegitimateColorName(name: string): boolean {
     "weight",
     "size",
     "lbs",
-    "floral",
   ];
   if (blacklist.some((term) => lower.includes(term))) return false;
-  if (lower.length > 22 || lower.length < 2) return false;
+  if (lower.length > 25 || lower.length < 2) return false;
   return true;
 }
 
@@ -241,7 +241,7 @@ function ProductDetailPage() {
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
   const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. ROOT GALLERY: PRESERVES 100% OF ALL IMAGES (1 to 8, 1 to 15, ALL DETAILS RENDER)
+  // 2. ROOT GALLERY IMAGES
   const allProductImages = useMemo(() => {
     const list: string[] = [];
     if (product.image_url) {
@@ -260,7 +260,7 @@ function ProductDetailPage() {
     return localBackup || direct || "/placeholder.svg";
   }, [product.image_url, allProductImages]);
 
-  // 3. STRICT SWATCH VALIDATOR: ONLY ACCEPTS REAL COLOR VARIANTS WITH REAL PHOTOS
+  // 3. COLOR VARIANTS: PARSES COLORS FROM ACTIVE DIMENSION OR PRODUCT ROOT
   const availableColors: NormalizedColor[] = useMemo(() => {
     let rawList: any[] = [];
 
@@ -278,7 +278,7 @@ function ProductDetailPage() {
       rawList = product.colors;
     }
 
-    if (!rawList || rawList.length < 2) return [];
+    if (!rawList || rawList.length === 0) return [];
 
     const candidateColors: NormalizedColor[] = [];
 
@@ -288,6 +288,7 @@ function ProductDetailPage() {
       let images: string[] = [];
       let swatchUrl = "";
       let price: number | null = null;
+      let explicitColorCode = "";
 
       if (typeof c === "string") {
         name = c.trim();
@@ -295,51 +296,36 @@ function ProductDetailPage() {
         name = c.name || c.color_name || c.colorName || c.label || "";
         images = extractUrls(c);
         swatchUrl = c.swatch_url || c.thumbnail || c.imageUrl || (images.length > 0 ? images[0] : "");
+        explicitColorCode = c.colorCode || c.color_code || c.hex || "";
         if (c.price) price = Number(c.price);
       }
 
-      const cleanName = name.replace(/[^a-zA-Z\s]/g, "").trim();
+      const cleanName = name.replace(/[^a-zA-Z\s&-]/g, "").trim();
       if (!cleanName || !isLegitimateColorName(cleanName)) continue;
 
-      // REQUIREMENT: Must have a real photo thumbnail to prevent blank circles
-      const thumb = sanitizeImgUrl(swatchUrl || (images.length > 0 ? images[0] : ""));
-      if (!thumb || thumb === "/placeholder.svg") {
-        continue;
-      }
+      const hex = explicitColorCode || getColorHex(cleanName);
+      const thumb = sanitizeImgUrl(swatchUrl);
 
       candidateColors.push({
         id: c?.id || `color-${idx}`,
         name: cleanName,
-        hex: c?.hex || c?.color_code || getColorHex(cleanName),
+        hex,
         thumb,
         images: images.map((u) => sanitizeImgUrl(u)),
         price,
       });
     }
 
-    // Must have at least 2 complete, photographic swatches
-    if (candidateColors.length < 2) {
-      return [];
-    }
-
-    // Detect sequential copies of angle shots
-    const isSequentialGalleryCopy =
-      candidateColors.length >= 3 &&
-      candidateColors.every((c, i) => i < allProductImages.length && c.thumb === allProductImages[i]);
-
-    const titleLower = (product.name || "").toLowerCase();
-    const titleColorMatch = candidateColors.some((c) => titleLower.includes(c.name.toLowerCase()));
-
-    if (isSequentialGalleryCopy && titleColorMatch) {
-      return [];
-    }
+    if (candidateColors.length < 2) return [];
 
     return candidateColors;
-  }, [product, activeDimension, allProductImages]);
+  }, [product, activeDimension]);
 
   const hasColors = availableColors.length >= 2;
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+  const [activeSlide, setActiveSlide] = useState(0);
 
+  // Sync active color and reset slide when dimension changes
   const handleDimensionChange = (newDimIdx: number) => {
     setSelectedDimensionIdx(newDimIdx);
     setSelectedColorIdx(0);
@@ -348,24 +334,26 @@ function ProductDetailPage() {
 
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping">("desc");
-
-  // 4. MEDIA CAROUSEL: RETAINS ALL IMAGES IN SEQUENCE
+  // 4. MEDIA LIST: Prioritizes active dimension / active color, falls back to full gallery
   const mediaList: MediaItem[] = useMemo(() => {
     let urls: string[] = [];
 
-    if (activeColor?.images && activeColor.images.length > 1) {
+    // 1. If color has explicit images, use them
+    if (activeColor?.images && activeColor.images.length > 0) {
       urls.push(...activeColor.images);
-    } else {
-      urls.push(...allProductImages);
     }
 
+    // 2. If dimension has explicit images, use them
     if (activeDimension) {
       const dimImgs = extractUrls(activeDimension.images || activeDimension.gallery);
-      dimImgs.forEach((u) => {
-        if (!urls.includes(u)) urls.push(u);
-      });
+      if (dimImgs.length > 0 && urls.length === 0) {
+        urls.push(...dimImgs);
+      }
+    }
+
+    // 3. Fallback: full product gallery
+    if (urls.length === 0) {
+      urls.push(...allProductImages);
     }
 
     const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
@@ -395,26 +383,40 @@ function ProductDetailPage() {
   const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
   const activeMedia = mediaList[activeSlide] || mediaList[0];
 
+  // When clicking a color swatch:
   const handleColorClick = (idx: number) => {
     setSelectedColorIdx(idx);
     const targetColor = availableColors[idx];
-
     if (!targetColor) return;
 
+    // If color has dedicated images, reset to first image
     if (targetColor.images && targetColor.images.length > 0) {
-      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.images[0]);
-      if (matchIdx !== -1) {
-        setActiveSlide(matchIdx);
-        return;
-      }
+      setActiveSlide(0);
+      return;
     }
 
+    // If targetColor has a thumb that exists in the gallery, switch to that slide
     if (targetColor.thumb) {
       const matchIdx = mediaList.findIndex((m) => m.url === targetColor.thumb);
       if (matchIdx !== -1) {
         setActiveSlide(matchIdx);
         return;
       }
+    }
+
+    // Check if gallery has an image matching the color name in the URL
+    const colorKeyword = targetColor.name.toLowerCase().split(" ")[0];
+    const nameMatchIdx = mediaList.findIndex((m) =>
+      m.url.toLowerCase().includes(colorKeyword)
+    );
+    if (nameMatchIdx !== -1) {
+      setActiveSlide(nameMatchIdx);
+      return;
+    }
+
+    // Otherwise jump to index position in gallery if within bounds
+    if (idx < totalMedia) {
+      setActiveSlide(idx);
     }
   };
 
@@ -444,6 +446,8 @@ function ProductDetailPage() {
     BUSINESS.phoneRaw +
     "?text=" +
     encodeURIComponent("Hi " + BUSINESS.name + "! I would like to request a quote for " + product.name + ".");
+
+  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping">("desc");
 
   const relatedProducts = useMemo(() => {
     const currentCategory = (product.category ?? "").trim().toLowerCase();
@@ -610,7 +614,7 @@ function ProductDetailPage() {
               {formatRupeePrice(displayPrice)}
             </div>
 
-            {/* 1. SELECT SIZE / DIMENSIONS (Shown only if defined) */}
+            {/* 1. SELECT SIZE / DIMENSIONS */}
             {hasDimensions && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
@@ -655,7 +659,7 @@ function ProductDetailPage() {
               </div>
             )}
 
-            {/* 2. SELECT COLOR (ONLY SHOWN IF AUTHENTIC PHOTO SWATCHES EXIST) */}
+            {/* 2. SELECT COLOR (Always renders color background even without image thumbnail) */}
             {hasColors && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
@@ -680,6 +684,7 @@ function ProductDetailPage() {
                             ? "border-emerald ring-2 ring-emerald/40 scale-110 shadow-sm"
                             : "border-border/80 hover:scale-105 hover:border-foreground/40"
                         }`}
+                        style={{ backgroundColor: color.hex }}
                       >
                         {color.thumb ? (
                           <img
@@ -692,10 +697,6 @@ function ProductDetailPage() {
                             }}
                           />
                         ) : null}
-                        <div
-                          className="absolute inset-0 -z-10"
-                          style={{ backgroundColor: color.hex }}
-                        />
                       </button>
                     );
                   })}
