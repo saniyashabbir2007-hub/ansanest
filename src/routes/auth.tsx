@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { pb } from "@/integrations/pocketbase/client";
 import { toast } from "sonner";
 import { BUSINESS } from "@/lib/business";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -16,36 +16,26 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const { isAuthenticated, loginWithEmail, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (pb.authStore.isValid && pb.authStore.record) {
+    if (isAuthenticated) {
       navigate({ to: "/admin" });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        await pb.collection("users").create({
-          email,
-          password,
-          passwordConfirm: password,
-        });
-        // Authenticate immediately after account creation
-        await pb.collection("users").authWithPassword(email, password);
-        toast.success("Account created. Signing you in…");
-      } else {
-        await pb.collection("users").authWithPassword(email, password);
-      }
+      await loginWithEmail(email, password);
+      toast.success("Signed in successfully!");
       navigate({ to: "/admin" });
     } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+      toast.error(err.message || "Failed to sign in. Check email and password.");
     } finally {
       setLoading(false);
     }
@@ -53,11 +43,9 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
-    console.log("Google login clicked");
     try {
-      await pb.collection("users").authWithOAuth2({
-        provider: "google",
-      });
+      await loginWithGoogle();
+      toast.success("Google sign-in successful!");
       navigate({ to: "/admin" });
     } catch (err: any) {
       toast.error(err.message || "Google sign-in failed");
@@ -73,7 +61,7 @@ function AuthPage() {
           {BUSINESS.name}
         </Link>
         <h1 className="mt-6 font-display text-3xl text-foreground">
-          {mode === "signin" ? "Admin Sign In" : "Create Admin Account"}
+          Admin Sign In
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Manage products, prices and gallery for {BUSINESS.name}.
@@ -84,7 +72,8 @@ function AuthPage() {
         <button
           onClick={handleGoogle}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+          type="button"
+          className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60 cursor-pointer"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -144,30 +133,12 @@ function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
+            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60 cursor-pointer"
           >
-            {loading
-              ? "Please wait…"
-              : mode === "signin"
-              ? "Sign In"
-              : "Create Account"}
+            {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
-
-        <button
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          {mode === "signin"
-            ? "No account? Create one"
-            : "Have an account? Sign in"}
-        </button>
       </div>
-
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        New here? Create an account and request admin access — a Super Admin will
-        review and approve it.
-      </p>
     </div>
   );
 }

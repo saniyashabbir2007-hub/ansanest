@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Star,
   MessageCircle,
@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Lock,
 } from "lucide-react";
-import { listProducts, resolveImageUrl, type Product } from "@/lib/products-api";
+import { listProducts, resolveImageUrl } from "@/lib/products-api";
 import { BUSINESS } from "@/lib/business";
 import { ProductCard } from "@/components/site/ProductCard";
 
@@ -22,47 +22,166 @@ interface MediaItem {
   poster?: string;
 }
 
+interface NormalizedColor {
+  id: string;
+  name: string;
+  hex: string;
+  thumb: string;
+  images: string[];
+  price?: number | null;
+}
+
 function formatRupeePrice(price?: number | string | null): string {
   if (price === undefined || price === null || price === "") return "₹0";
   const num = typeof price === "string" ? Number(price) : price;
   if (isNaN(num)) return "₹0";
-  return `₹${num.toLocaleString("en-IN")}`;
+  return "₹" + num.toLocaleString("en-IN");
 }
 
-// Utility to extract all image strings and resolve them to working CDN URLs
-function extractImagesFromObj(obj: any): string[] {
-  if (!obj) return [];
+const COLOR_MAP: Record<string, string> = {
+  gray: "#808080",
+  grey: "#808080",
+  "charcoal grey": "#36454F",
+  "charcoal gray": "#36454F",
+  "mustard yellow": "#E1AD01",
+  yellow: "#EAB308",
+  "ivory white": "#FDFBF7",
+  ivory: "#FFFFF0",
+  white: "#FFFFFF",
+  "emerald green": "#50C878",
+  "olive green": "#556B2F",
+  green: "#2E8B57",
+  "forest green": "#228B22",
+  beige: "#F5F5DC",
+  "rust orange": "#C45508",
+  orange: "#FFA500",
+  "coral orange": "#FF7F50",
+  "navy blue": "#000080",
+  blue: "#1E3A8A",
+  "royal blue": "#4169E1",
+  black: "#1A1A1A",
+  "classic black": "#1A1A1A",
+  brown: "#8B4513",
+  "chocolate brown": "#4B3621",
+  "dark brown": "#5C2C16",
+  tan: "#D2B48C",
+  "tan & cream": "#D2B48C",
+  dove: "#8C8D8A",
+  taupe: "#B38B6D",
+  cognac: "#9E4714",
+  red: "#DC2626",
+  "classic red": "#B91C1C",
+  "burgundy red": "#800020",
+  burgundy: "#800020",
+  pink: "#EC4899",
+  rose: "#F43F5E",
+  "blush rose": "#FFB6C1",
+  "light grey": "#D3D3D3",
+  "light gray": "#D3D3D3",
+};
+
+function getColorHex(name: string): string {
+  if (!name) return "#A3A3A3";
+  const clean = name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
+
+  if (COLOR_MAP[clean]) return COLOR_MAP[clean];
+
+  for (const key of Object.keys(COLOR_MAP)) {
+    if (clean.includes(key)) {
+      return COLOR_MAP[key];
+    }
+  }
+
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 40%, 65%)`;
+}
+
+function isLegitimateColorName(name: string): boolean {
+  if (!name || typeof name !== "string") return false;
+  const lower = name.toLowerCase().trim();
+  const blacklist = [
+    "custom",
+    "available",
+    "also",
+    "warranty",
+    "assembly",
+    "guarantee",
+    "feature",
+    "specification",
+    "dimension",
+    "material",
+    "frame",
+    "seater",
+    "cushion",
+    "foam",
+    "patchwork",
+    "capacity",
+    "weight",
+    "size",
+    "lbs",
+    "floral",
+  ];
+  if (blacklist.some((term) => lower.includes(term))) return false;
+  if (lower.length > 22 || lower.length < 2) return false;
+  return true;
+}
+
+function sanitizeImgUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  let trimmed = String(url).trim();
+  if (trimmed.includes("ibb.co/") && !trimmed.includes("i.ibb.co/")) {
+    trimmed = trimmed.replace("https://ibb.co/", "https://i.ibb.co/");
+    trimmed = trimmed.replace("http://ibb.co/", "https://i.ibb.co/");
+  }
+  return resolveImageUrl(trimmed);
+}
+
+function extractUrls(target: any): string[] {
+  if (!target) return [];
   const found: string[] = [];
 
-  const addIfStr = (val: any) => {
+  const add = (val: any) => {
     if (typeof val === "string" && val.trim().length > 0) {
-      const resolved = resolveImageUrl(val.trim());
+      const resolved = sanitizeImgUrl(val.trim());
       if (resolved && resolved !== "/placeholder.svg") {
         found.push(resolved);
       }
     }
   };
 
-  addIfStr(obj.image_url);
-  addIfStr(obj.imageUrl);
-  addIfStr(obj.image);
-  addIfStr(obj.swatch_url);
-  addIfStr(obj.thumbnail);
+  if (typeof target === "string") {
+    add(target);
+    return found;
+  }
 
-  const arrays = [obj.images, obj.gallery, obj.gallery_urls, obj.photos, obj.image_urls];
-  arrays.forEach((arr) => {
-    if (Array.isArray(arr)) {
-      arr.forEach((item) => {
-        if (typeof item === "string") addIfStr(item);
-        else if (typeof item === "object" && item !== null) {
-          addIfStr(item.url);
-          addIfStr(item.imageUrl);
-          addIfStr(item.image_url);
-          addIfStr(item.image);
-        }
-      });
-    }
-  });
+  if (Array.isArray(target)) {
+    target.forEach((item) => {
+      extractUrls(item).forEach((u) => found.push(u));
+    });
+    return Array.from(new Set(found));
+  }
+
+  if (typeof target === "object" && target !== null) {
+    add(target.image_url);
+    add(target.imageUrl);
+    add(target.image);
+    add(target.swatch_url);
+    add(target.url);
+    add(target.thumbnail);
+
+    const subArrays = [target.images, target.gallery, target.gallery_urls, target.photos, target.image_urls];
+    subArrays.forEach((arr) => {
+      if (Array.isArray(arr)) {
+        arr.forEach((item) => {
+          extractUrls(item).forEach((u) => found.push(u));
+        });
+      }
+    });
+  }
 
   return Array.from(new Set(found));
 }
@@ -104,7 +223,7 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. Dimension / Size Variants
+  // 1. DIMENSION VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -118,103 +237,138 @@ function ProductDetailPage() {
     return [];
   }, [product]);
 
+  const hasDimensions = dimensionVariants.length > 0;
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
+  const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. Active Dimension object
-  const activeDimension = dimensionVariants[selectedDimensionIdx] || null;
+  // 2. ROOT GALLERY: PRESERVES 100% OF ALL IMAGES (1 to 8, 1 to 15, ALL DETAILS RENDER)
+  const allProductImages = useMemo(() => {
+    const list: string[] = [];
+    if (product.image_url) {
+      const main = sanitizeImgUrl(product.image_url);
+      if (main && main !== "/placeholder.svg") list.push(main);
+    }
+    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
+    extractUrls(product.images).forEach((u) => list.push(u));
+    return Array.from(new Set(list));
+  }, [product]);
 
-  // 3. Color Variants: checks nested colors inside active dimension first, then root arrays
-  const activeColorVariants: any[] = useMemo(() => {
-    const nested =
+  const primaryFallback = useMemo(() => {
+    const direct = sanitizeImgUrl(product.image_url);
+    if (direct && !direct.includes("imgbb.com")) return direct;
+    const localBackup = allProductImages.find((u) => !u.includes("imgbb.com"));
+    return localBackup || direct || "/placeholder.svg";
+  }, [product.image_url, allProductImages]);
+
+  // 3. STRICT SWATCH VALIDATOR: ONLY ACCEPTS REAL COLOR VARIANTS WITH REAL PHOTOS
+  const availableColors: NormalizedColor[] = useMemo(() => {
+    let rawList: any[] = [];
+
+    const dimColors =
       activeDimension?.color_variants ||
       activeDimension?.variants ||
       activeDimension?.colors ||
       activeDimension?.color_options;
 
-    if (Array.isArray(nested) && nested.length > 0) {
-      return nested.map((v: any) => {
-        if (typeof v === "string") return { name: v, label: v };
-        return v;
-      }).filter((v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0));
+    if (Array.isArray(dimColors) && dimColors.length > 0) {
+      rawList = dimColors;
+    } else if (Array.isArray(product.color_variants) && product.color_variants.length > 0) {
+      rawList = product.color_variants;
+    } else if (Array.isArray(product.colors) && product.colors.length > 0) {
+      rawList = product.colors;
     }
 
-    // Root color_variants
-    if (Array.isArray(product.color_variants) && product.color_variants.length > 0) {
-      return product.color_variants.filter(
-        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
-      );
-    }
+    if (!rawList || rawList.length < 2) return [];
 
-    // Root colors array (handles both objects and string lists like ["Mustard Yellow", "Ivory White", ...])
-    if (Array.isArray(product.colors) && product.colors.length > 0) {
-      return product.colors.map((c: any) => {
-        if (typeof c === "string") return { name: c, label: c };
-        return c;
-      }).filter((c: any) => c && (c.name || c.color_name || c.label || extractImagesFromObj(c).length > 0));
-    }
+    const candidateColors: NormalizedColor[] = [];
 
-    // Root color_options
-    if (Array.isArray(product.color_options) && product.color_options.length > 0) {
-      return product.color_options.map((c: any) => {
-        if (typeof c === "string") return { name: c, label: c };
-        return c;
+    for (let idx = 0; idx < rawList.length; idx++) {
+      const c = rawList[idx];
+      let name = "";
+      let images: string[] = [];
+      let swatchUrl = "";
+      let price: number | null = null;
+
+      if (typeof c === "string") {
+        name = c.trim();
+      } else if (typeof c === "object" && c !== null) {
+        name = c.name || c.color_name || c.colorName || c.label || "";
+        images = extractUrls(c);
+        swatchUrl = c.swatch_url || c.thumbnail || c.imageUrl || (images.length > 0 ? images[0] : "");
+        if (c.price) price = Number(c.price);
+      }
+
+      const cleanName = name.replace(/[^a-zA-Z\s]/g, "").trim();
+      if (!cleanName || !isLegitimateColorName(cleanName)) continue;
+
+      // REQUIREMENT: Must have a real photo thumbnail to prevent blank circles
+      const thumb = sanitizeImgUrl(swatchUrl || (images.length > 0 ? images[0] : ""));
+      if (!thumb || thumb === "/placeholder.svg") {
+        continue;
+      }
+
+      candidateColors.push({
+        id: c?.id || `color-${idx}`,
+        name: cleanName,
+        hex: c?.hex || c?.color_code || getColorHex(cleanName),
+        thumb,
+        images: images.map((u) => sanitizeImgUrl(u)),
+        price,
       });
     }
 
-    return [];
-  }, [product, activeDimension]);
-
-  const hasColorVariants = activeColorVariants.length > 0;
-  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
-
-  // Keep variant index valid when dimension changes
-  useEffect(() => {
-    if (selectedVariantIdx >= activeColorVariants.length) {
-      setSelectedVariantIdx(0);
+    // Must have at least 2 complete, photographic swatches
+    if (candidateColors.length < 2) {
+      return [];
     }
-  }, [activeColorVariants.length, selectedVariantIdx]);
+
+    // Detect sequential copies of angle shots
+    const isSequentialGalleryCopy =
+      candidateColors.length >= 3 &&
+      candidateColors.every((c, i) => i < allProductImages.length && c.thumb === allProductImages[i]);
+
+    const titleLower = (product.name || "").toLowerCase();
+    const titleColorMatch = candidateColors.some((c) => titleLower.includes(c.name.toLowerCase()));
+
+    if (isSequentialGalleryCopy && titleColorMatch) {
+      return [];
+    }
+
+    return candidateColors;
+  }, [product, activeDimension, allProductImages]);
+
+  const hasColors = availableColors.length >= 2;
+  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+
+  const handleDimensionChange = (newDimIdx: number) => {
+    setSelectedDimensionIdx(newDimIdx);
+    setSelectedColorIdx(0);
+    setActiveSlide(0);
+  };
+
+  const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping">("desc");
 
-  // 4. Exact Gallery Resolver for active Dimension + active Color combination
+  // 4. MEDIA CAROUSEL: RETAINS ALL IMAGES IN SEQUENCE
   const mediaList: MediaItem[] = useMemo(() => {
-    let images: string[] = [];
+    let urls: string[] = [];
 
-    const activeColor = activeColorVariants[selectedVariantIdx];
-
-    // Priority 1: Images from the active color inside the active dimension (or active color root)
-    if (activeColor) {
-      const colorImgs = extractImagesFromObj(activeColor);
-      if (colorImgs.length > 0) {
-        images.push(...colorImgs);
-      }
+    if (activeColor?.images && activeColor.images.length > 1) {
+      urls.push(...activeColor.images);
+    } else {
+      urls.push(...allProductImages);
     }
 
-    // Priority 2: If active color only had 1 thumbnail or none, add active dimension's direct photos
-    if (images.length <= 1 && activeDimension) {
-      const dimImgs = extractImagesFromObj(activeDimension);
-      if (dimImgs.length > 0) {
-        images.push(...dimImgs);
-      }
+    if (activeDimension) {
+      const dimImgs = extractUrls(activeDimension.images || activeDimension.gallery);
+      dimImgs.forEach((u) => {
+        if (!urls.includes(u)) urls.push(u);
+      });
     }
 
-    // Priority 3: Fallback to product root gallery & main image
-    if (images.length === 0) {
-      const rootImgs = extractImagesFromObj(product);
-      images.push(...rootImgs);
-    }
-
-    if (product.image_url) {
-      const resolvedMain = resolveImageUrl(product.image_url);
-      if (resolvedMain && !images.includes(resolvedMain)) {
-        images.unshift(resolvedMain);
-      }
-    }
-
-    const uniqueUrls = Array.from(
-      new Set(images.filter((u) => typeof u === "string" && u.trim().length > 0))
-    );
+    const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
 
     const distinct: MediaItem[] = uniqueUrls.map((url) => ({
       type: "image",
@@ -232,47 +386,64 @@ function ProductDetailPage() {
 
     return distinct.length > 0
       ? distinct
-      : [{ type: "image", url: resolveImageUrl(product.image_url) }];
-  }, [product, activeDimension, activeColorVariants, selectedVariantIdx]);
+      : [{ type: "image", url: sanitizeImgUrl(product.image_url) || "/placeholder.svg" }];
+  }, [product, activeDimension, activeColor, allProductImages]);
 
   const totalMedia = mediaList.length;
 
   const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
   const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
-
   const activeMedia = mediaList[activeSlide] || mediaList[0];
 
+  const handleColorClick = (idx: number) => {
+    setSelectedColorIdx(idx);
+    const targetColor = availableColors[idx];
+
+    if (!targetColor) return;
+
+    if (targetColor.images && targetColor.images.length > 0) {
+      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.images[0]);
+      if (matchIdx !== -1) {
+        setActiveSlide(matchIdx);
+        return;
+      }
+    }
+
+    if (targetColor.thumb) {
+      const matchIdx = mediaList.findIndex((m) => m.url === targetColor.thumb);
+      if (matchIdx !== -1) {
+        setActiveSlide(matchIdx);
+        return;
+      }
+    }
+  };
+
   const displayPrice = useMemo(() => {
+    if (activeColor?.price) return activeColor.price;
     if (activeDimension?.price) return activeDimension.price;
-    if (activeColorVariants[selectedVariantIdx]?.price)
-      return activeColorVariants[selectedVariantIdx].price;
     return product.price;
-  }, [activeDimension, activeColorVariants, selectedVariantIdx, product.price]);
+  }, [activeColor, activeDimension, product.price]);
 
-  const selectedColorName = hasColorVariants
-    ? activeColorVariants[selectedVariantIdx]?.name ||
-      activeColorVariants[selectedVariantIdx]?.color_name ||
-      activeColorVariants[selectedVariantIdx]?.label ||
-      `Option ${selectedVariantIdx + 1}`
-    : "";
-
+  const selectedColorName = hasColors ? activeColor?.name || "" : "";
   const selectedSizeInfo = activeDimension
     ? activeDimension.name || activeDimension.label || activeDimension.dimensions || ""
     : "";
 
-  const whatsappMessage = encodeURIComponent(
-    `Hi ${BUSINESS.name}! I am interested in "${product.name}" (${formatRupeePrice(displayPrice)})${
-      selectedColorName ? ` in ${selectedColorName}` : ""
-    }${selectedSizeInfo ? ` | Size: ${selectedSizeInfo}` : ""}.\n\nProduct Link: ${
-      typeof window !== "undefined" ? window.location.href : ""
-    }`
-  );
-  const quoteMessage = encodeURIComponent(
-    `Hi ${BUSINESS.name}! I would like to request a quote for "${product.name}" with custom specifications.`
-  );
+  const whatsappMsgText = [
+    "Hi " + BUSINESS.name + "! I am interested in " + product.name + " (" + formatRupeePrice(displayPrice) + ")",
+    selectedColorName ? "in " + selectedColorName : "",
+    selectedSizeInfo ? "| Size: " + selectedSizeInfo : "",
+    typeof window !== "undefined" ? "Product Link: " + window.location.href : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const whatsappUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${whatsappMessage}`;
-  const quoteUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${quoteMessage}`;
+  const whatsappUrl = "https://wa.me/" + BUSINESS.phoneRaw + "?text=" + encodeURIComponent(whatsappMsgText);
+  const quoteUrl =
+    "https://wa.me/" +
+    BUSINESS.phoneRaw +
+    "?text=" +
+    encodeURIComponent("Hi " + BUSINESS.name + "! I would like to request a quote for " + product.name + ".");
 
   const relatedProducts = useMemo(() => {
     const currentCategory = (product.category ?? "").trim().toLowerCase();
@@ -290,7 +461,6 @@ function ProductDetailPage() {
     });
 
     if (matched.length >= 4) return matched.slice(0, 8);
-
     const otherProducts = products.filter(
       (p: any) => p.id !== product.id && !matched.some((m: any) => m.id === p.id)
     );
@@ -307,7 +477,6 @@ function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-background py-6 md:py-8">
       <div className="container-px mx-auto max-w-7xl">
-        {/* Breadcrumb Navigation */}
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Link to="/" className="hover:text-foreground">Home</Link>
           <span>/</span>
@@ -330,9 +499,8 @@ function ProductDetailPage() {
           </span>
         </nav>
 
-        {/* Product Showcase */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-14 items-start">
-          {/* Left Column: Image Slider */}
+          {/* Main Media Carousel */}
           <div className="lg:col-span-6 xl:col-span-6">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-white shadow-xs">
               <div className="absolute right-3.5 top-3.5 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
@@ -352,10 +520,26 @@ function ProductDetailPage() {
                 </div>
               ) : (
                 <img
-                  key={`${selectedDimensionIdx}-${selectedVariantIdx}-${activeSlide}-${activeMedia.url}`}
-                  src={resolveImageUrl(activeMedia.url) || resolveImageUrl(product.image_url)}
+                  key={`${selectedDimensionIdx}-${selectedColorIdx}-${activeSlide}-${activeMedia.url}`}
+                  src={activeMedia.url}
                   alt={product.name}
+                  referrerPolicy="no-referrer"
                   className="h-full w-full object-contain p-2 transition-all duration-300"
+                  onError={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    if (img.src !== primaryFallback) {
+                      img.src = primaryFallback;
+                    }
+                  }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    if (
+                      img.src.includes("imgbb.com") &&
+                      ((img.naturalWidth === 500 && img.naturalHeight === 500) || img.naturalWidth <= 1)
+                    ) {
+                      img.src = primaryFallback;
+                    }
+                  }}
                 />
               )}
 
@@ -381,18 +565,17 @@ function ProductDetailPage() {
               )}
             </div>
 
-            {/* Slider Dots */}
             {totalMedia > 1 && (
-              <div className="mt-3 flex items-center justify-center gap-1.5">
+              <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap px-2">
                 {mediaList.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
-                    className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       activeSlide === idx
                         ? "w-6 bg-emerald"
-                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                     }`}
                   />
                 ))}
@@ -400,7 +583,7 @@ function ProductDetailPage() {
             )}
           </div>
 
-          {/* Right Column: Details, Selectors, and Actions */}
+          {/* Details & Selectors */}
           <div className="flex flex-col lg:col-span-6 xl:col-span-6">
             <span className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground font-semibold">
               {product.category || product.sub_type || "FURNITURE"}
@@ -427,8 +610,8 @@ function ProductDetailPage() {
               {formatRupeePrice(displayPrice)}
             </div>
 
-            {/* 1. SELECT SIZE / DIMENSIONS */}
-            {dimensionVariants.length > 0 && (
+            {/* 1. SELECT SIZE / DIMENSIONS (Shown only if defined) */}
+            {hasDimensions && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
                   1. Select Size / Dimensions:
@@ -443,11 +626,7 @@ function ProductDetailPage() {
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => {
-                          setSelectedDimensionIdx(idx);
-                          setSelectedVariantIdx(0);
-                          setActiveSlide(0);
-                        }}
+                        onClick={() => handleDimensionChange(idx)}
                         className={`flex min-w-[170px] max-w-[210px] flex-shrink-0 flex-col justify-between rounded-xl border p-2 text-left transition-all cursor-pointer ${
                           isSelected
                             ? "border-emerald bg-emerald/5 ring-1 ring-emerald/30 shadow-2xs"
@@ -476,55 +655,47 @@ function ProductDetailPage() {
               </div>
             )}
 
-            {/* 2. SELECT COLOR */}
-            {hasColorVariants && (
+            {/* 2. SELECT COLOR (ONLY SHOWN IF AUTHENTIC PHOTO SWATCHES EXIST) */}
+            {hasColors && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
-                  2. Select Color:{" "}
+                  {hasDimensions ? "2. " : "1. "}Select Color:{" "}
                   <span className="uppercase font-semibold text-emerald">
                     {selectedColorName}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {activeColorVariants.map((variant: any, idx: number) => {
-                    const variantImgs = extractImagesFromObj(variant);
-                    const rawThumb = variantImgs[0] || variant.swatch_url || variant.imageUrl || variant.image;
-                    const resolvedThumb = rawThumb ? resolveImageUrl(rawThumb) : null;
+                  {availableColors.map((color, idx) => {
+                    const isSelected = selectedColorIdx === idx;
 
                     return (
                       <button
-                        key={idx}
+                        key={color.id || idx}
                         type="button"
-                        onClick={() => {
-                          setSelectedVariantIdx(idx);
-                          setActiveSlide(0);
-                        }}
-                        aria-label={variant.name || `Color option ${idx + 1}`}
-                        className={`h-9 w-9 rounded-full overflow-hidden border-2 transition-all bg-white cursor-pointer ${
-                          selectedVariantIdx === idx
-                            ? "border-emerald ring-2 ring-emerald/30 scale-105"
-                            : "border-border hover:border-foreground/50"
+                        title={color.name}
+                        onClick={() => handleColorClick(idx)}
+                        aria-label={color.name}
+                        className={`group relative h-9 w-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-emerald ring-2 ring-emerald/40 scale-110 shadow-sm"
+                            : "border-border/80 hover:scale-105 hover:border-foreground/40"
                         }`}
                       >
-                        {resolvedThumb && resolvedThumb !== "/placeholder.svg" ? (
+                        {color.thumb ? (
                           <img
-                            src={resolvedThumb}
-                            alt=""
+                            src={color.thumb}
+                            alt={color.name}
+                            referrerPolicy="no-referrer"
                             className="h-full w-full object-cover"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = "none";
                             }}
                           />
-                        ) : (
-                          <div
-                            className="h-full w-full flex items-center justify-center text-[8px] font-semibold text-muted-foreground bg-muted"
-                            style={{
-                              backgroundColor: variant.hex || variant.color_code || undefined,
-                            }}
-                          >
-                            {!variant.hex && (variant.name?.[0] || idx + 1)}
-                          </div>
-                        )}
+                        ) : null}
+                        <div
+                          className="absolute inset-0 -z-10"
+                          style={{ backgroundColor: color.hex }}
+                        />
                       </button>
                     );
                   })}
@@ -641,7 +812,8 @@ function ProductDetailPage() {
                 <div className="lg:col-span-7 space-y-3">
                   <p className="leading-relaxed whitespace-pre-line text-foreground/90">
                     {product.description ||
-                      `${product.name} brings timeless sophistication into your space. Crafted with reinforced framing and high-density cushioning designed to provide lasting support.`}
+                      product.name +
+                        " brings timeless sophistication into your space. Crafted with reinforced framing and high-density cushioning designed to provide lasting support."}
                   </p>
 
                   {product.features && Array.isArray(product.features) && product.features.length > 0 && (

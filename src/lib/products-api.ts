@@ -30,6 +30,7 @@ export type DimensionVariant = {
 };
 
 export type ProductColor = {
+  name?: string;
   colorName: string;
   colorCode: string;
   imageUrl: string;
@@ -84,16 +85,15 @@ export type CategoryInput = Omit<Category, "id">;
 export function resolveImageUrl(url: string | null | undefined): string {
   if (!url) return "/placeholder.svg";
   const trimmed = String(url).trim();
-  if (!trimmed) return "/placeholder.svg";
+  if (!trimmed || trimmed === "/placeholder.svg") return "/placeholder.svg";
 
-  // If already an active CDN link (ImgBB account 1, account 2, Cloudinary, data URLs, etc.)
+  // If already an active CDN link (ImgBB, Cloudinary, data URLs, external HTTP links)
   if (
     trimmed.startsWith("http://") ||
     trimmed.startsWith("https://") ||
     trimmed.startsWith("//") ||
     trimmed.startsWith("data:image")
   ) {
-    // If it's a dead Supabase URL, extract filename
     if (trimmed.includes("supabase.co")) {
       const cleanFilename = trimmed.split("/").pop()?.split("?")[0];
       if (cleanFilename) {
@@ -104,9 +104,9 @@ export function resolveImageUrl(url: string | null | undefined): string {
   }
 
   // Already a valid local relative path
-  if (trimmed.startsWith("/product-images/")) return trimmed;
+  if (trimmed.startsWith("/") || trimmed.startsWith("./")) return trimmed;
 
-  // Extract base filename if it was a relative filename
+  // Extract base filename if it was a bare relative filename
   const cleanFilename = trimmed.split("/").pop()?.split("?")[0];
   if (cleanFilename) {
     return `/product-images/${decodeURIComponent(cleanFilename)}`;
@@ -125,19 +125,15 @@ export function slugify(text: string): string {
     .replace(/--+/g, "-");
 }
 
-export function normalizeProductColors(colors: any): any[] {
-  return ensureArray(colors);
-}
-
 function ensureArray<T = any>(val: any): T[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
   if (typeof val === "string") {
     try {
       const parsed = JSON.parse(val);
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? parsed : [val as any];
     } catch {
-      return [];
+      return [val as any];
     }
   }
   return [];
@@ -146,37 +142,81 @@ function ensureArray<T = any>(val: any): T[] {
 function normalizeProduct(p: any): Product {
   if (!p) return p;
 
-  const rawGallery = ensureArray<string>(p.gallery_urls);
+  const rawGallery = ensureArray<string>(p.gallery_urls || p.images || p.gallery);
   const rawColors = ensureArray<any>(p.colors);
-  const rawColorVariants = ensureArray<any>(p.color_variants);
-  const rawDimensionVariants = ensureArray<any>(p.dimension_variants);
+  const rawColorVariants = ensureArray<any>(p.color_variants || p.variants);
+  const rawDimensionVariants = ensureArray<any>(p.dimension_variants || p.size_variants || p.sizes);
+
+  // Normalize colors: handles plain string arrays ("Mustard Yellow") and objects
+  const normalizedColors = rawColors.map((c, idx) => {
+    if (typeof c === "string") {
+      return {
+        name: c,
+        colorName: c,
+        colorCode: "",
+        imageUrl: "",
+      };
+    }
+    return {
+      ...c,
+      name: c.name || c.colorName || c.label || `Color ${idx + 1}`,
+      colorName: c.colorName || c.name || c.label || `Color ${idx + 1}`,
+      imageUrl: c?.imageUrl ? resolveImageUrl(c.imageUrl) : "",
+    };
+  });
+
+  const normalizedColorVariants = rawColorVariants.map((cv, idx) => {
+    if (typeof cv === "string") {
+      return {
+        name: cv,
+        images: [],
+      };
+    }
+    const cvImgs = ensureArray<string>(cv.images || cv.image_urls || cv.photos);
+    return {
+      ...cv,
+      name: cv.name || cv.color_name || `Color ${idx + 1}`,
+      images: cvImgs.map((img) => resolveImageUrl(img)),
+    };
+  });
+
+  const normalizedDimensionVariants = rawDimensionVariants.map((v, idx) => {
+    const vImgs = ensureArray<string>(v.images || v.gallery);
+    const vColors = ensureArray<any>(v.colors || v.color_variants);
+
+    return {
+      ...v,
+      id: v.id || `var-${idx}`,
+      name: v.name || v.label || `Size ${idx + 1}`,
+      dimensions: v.dimensions || "",
+      price: Number(v.price) || Number(p.price) || 0,
+      images: vImgs.map((img) => resolveImageUrl(img)),
+      colors: vColors.map((c, cIdx) => {
+        if (typeof c === "string") {
+          return { name: c, images: [] };
+        }
+        const cImgs = ensureArray<string>(c.images || c.photos || (c.imageUrl ? [c.imageUrl] : []));
+        return {
+          ...c,
+          name: c.name || c.color_name || `Color ${cIdx + 1}`,
+          images: cImgs.map((img) => resolveImageUrl(img)),
+        };
+      }),
+    };
+  });
 
   return {
     ...p,
     image_url: resolveImageUrl(p.image_url),
     gallery_urls: rawGallery.map((img) => resolveImageUrl(img)),
-    colors: rawColors.map((c) => ({
-      ...c,
-      imageUrl: c?.imageUrl ? resolveImageUrl(c.imageUrl) : c?.imageUrl,
-    })),
-    color_variants: rawColorVariants.map((cv) => ({
-      ...cv,
-      images: ensureArray<string>(cv.images).map((img) => resolveImageUrl(img)),
-    })),
-    dimension_variants: rawDimensionVariants.map((v) => ({
-      ...v,
-      images: ensureArray<string>(v.images).map((img) => resolveImageUrl(img)),
-      colors: ensureArray<any>(v.colors).map((c) => ({
-        ...c,
-        imageUrl: c?.imageUrl ? resolveImageUrl(c.imageUrl) : c?.imageUrl,
-        images: ensureArray<string>(c?.images).map((img) => resolveImageUrl(img)),
-      })),
-    })),
+    colors: normalizedColors,
+    color_variants: normalizedColorVariants,
+    dimension_variants: normalizedDimensionVariants,
   };
 }
 
 // -------------------------------------------------------------
-// CLIENT-SIDE IMAGE COMPRESSION (FOR FUTURE UPLOADS)
+// CLIENT-SIDE IMAGE COMPRESSION (FOR OPTIMIZED UPLOADS)
 // -------------------------------------------------------------
 
 async function compressImageToWebP(
@@ -351,41 +391,56 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 // -------------------------------------------------------------
-// MEDIA UPLOAD
+// MEDIA UPLOAD (FREE DUAL-KEY IMGBB PIPELINE)
 // -------------------------------------------------------------
+
+const PRIMARY_IMGBB_KEY =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_IMGBB_API_KEY) ||
+  "b19d7e8d22601d98edfec03eb54dee1f";
+const BACKUP_IMGBB_KEY = "0e29991d142f585aeb1b66548719d15a";
 
 export async function uploadProductImage(file: File): Promise<string> {
   const optimizedFile = await compressImageToWebP(file);
-  const formData = new FormData();
-  formData.append("file", optimizedFile);
 
-  const response = await fetch("/api/upload-image", {
-    method: "POST",
-    body: formData,
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return data.url;
+  const tryUpload = async (apiKey: string) => {
+    const formData = new FormData();
+    formData.append("image", optimizedFile);
+
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error(`ImgBB upload error: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    if (!data.success || !data.data?.url) {
+      throw new Error(data.error?.message || "Failed to upload image to ImgBB");
+    }
+
+    return data.data.display_url || data.data.url;
+  };
+
+  try {
+    return await tryUpload(PRIMARY_IMGBB_KEY);
+  } catch (err) {
+    console.warn("Primary ImgBB key upload failed, attempting backup key...", err);
+    return await tryUpload(BACKUP_IMGBB_KEY);
   }
-  throw new Error("Failed to upload image file");
 }
 
 export async function uploadProductVideo(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await fetch("/api/upload-video", {
-    method: "POST",
-    body: formData,
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return data.url;
-  }
-  throw new Error("Failed to upload video file");
+  // Free video strategy: direct embed links (YouTube, Cloudinary, Vimeo)
+  // Large binary video uploads require paid cloud buckets.
+  throw new Error(
+    "To avoid storage charges, paste an unlisted YouTube, Cloudinary, or Vimeo video URL directly into the video links field."
+  );
 }
 
 // -------------------------------------------------------------
-// REVIEWS API
+// REVIEWS API (FIREBASE FIRESTORE)
 // -------------------------------------------------------------
 
 export async function listProductReviews(productId: string): Promise<any[]> {
@@ -470,7 +525,7 @@ export async function mergeProductAsVariant(
 
   const sourceImages = [
     source.image_url,
-    ...(ensureArray<string>(source.gallery_urls)),
+    ...ensureArray<string>(source.gallery_urls),
   ].filter(Boolean);
 
   const sourceColors: VariantColor[] = ensureArray(source.color_variants).map(
@@ -494,7 +549,7 @@ export async function mergeProductAsVariant(
         is_default: true,
         images: [
           target.image_url,
-          ...(ensureArray<string>(target.gallery_urls)),
+          ...ensureArray<string>(target.gallery_urls),
         ].filter(Boolean),
         colors: ensureArray(target.color_variants).map((c: any) => ({
           name: c.name || "Default Color",
@@ -566,11 +621,10 @@ export async function extractVariantToSeparateProduct(
     short_description: parent.short_description,
     description: parent.description,
     features: parent.features,
-    color_variants:
-      ensureArray(variant.colors).map((c: any) => ({
-        name: c.name,
-        images: ensureArray(c.images),
-      })),
+    color_variants: ensureArray(variant.colors).map((c: any) => ({
+      name: c.name,
+      images: ensureArray(c.images),
+    })),
     dimensions: variant.dimensions || parent.dimensions,
     material: parent.material,
     availability: parent.availability,

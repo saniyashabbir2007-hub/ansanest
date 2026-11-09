@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCategories,
@@ -25,10 +25,14 @@ import {
   ArrowRightLeft,
   Undo2,
   Crown,
+  RotateCcw,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export type ProductFormValues = ProductInput;
+
+const DRAFT_STORAGE_KEY = "ansanest_new_product_draft";
 
 const empty: ProductFormValues = {
   slug: "",
@@ -68,54 +72,134 @@ export function ProductForm({
   submitLabel: string;
   submitting?: boolean;
 }) {
+  const isNewProduct = !initial;
   const qc = useQueryClient();
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
   const allProductsQuery = useQuery({ queryKey: ["products"], queryFn: listProducts });
 
-  const [v, setV] = useState<ProductFormValues>(() =>
-    initial
-      ? {
-          slug: initial.slug,
-          name: initial.name,
-          category: initial.category,
-          sub_type: initial.sub_type,
-          price: initial.price != null ? Number(initial.price) : null,
-          price_on_request: initial.price_on_request,
-          image_url: initial.image_url,
-          gallery_urls: initial.gallery_urls ?? [],
-          video_urls: (initial as any).video_urls ?? [],
-          short_description: initial.short_description ?? "",
-          description: initial.description,
-          features: initial.features ?? [],
-          colors: initial.colors ?? [],
-          color_variants: (initial as any).color_variants ?? [],
-          dimension_variants: (initial as any).dimension_variants ?? [],
-          material: initial.material ?? "",
-          dimensions: initial.dimensions ?? "",
-          availability: initial.availability,
-          delivery_time: initial.delivery_time ?? null,
-          customizable: initial.customizable ?? false,
-          warranty: initial.warranty ?? null,
-          care_instructions: initial.care_instructions ?? null,
-          featured: initial.featured,
-          sort_order: initial.sort_order,
+  // 1. Initialize with Draft if new product, or initial product data
+  const [v, setV] = useState<ProductFormValues>(() => {
+    if (initial) {
+      return {
+        slug: initial.slug,
+        name: initial.name,
+        category: initial.category,
+        sub_type: initial.sub_type,
+        price: initial.price != null ? Number(initial.price) : null,
+        price_on_request: initial.price_on_request,
+        image_url: initial.image_url,
+        gallery_urls: initial.gallery_urls ?? [],
+        video_urls: (initial as any).video_urls ?? [],
+        short_description: initial.short_description ?? "",
+        description: initial.description,
+        features: initial.features ?? [],
+        colors: initial.colors ?? [],
+        color_variants: (initial as any).color_variants ?? [],
+        dimension_variants: (initial as any).dimension_variants ?? [],
+        material: initial.material ?? "",
+        dimensions: initial.dimensions ?? "",
+        availability: initial.availability,
+        delivery_time: initial.delivery_time ?? null,
+        customizable: initial.customizable ?? false,
+        warranty: initial.warranty ?? null,
+        care_instructions: initial.care_instructions ?? null,
+        featured: initial.featured,
+        sort_order: initial.sort_order,
+      };
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return { ...empty, ...parsed };
         }
-      : empty,
-  );
+      } catch (err) {
+        console.warn("Failed to load draft from localStorage", err);
+      }
+    }
+
+    return empty;
+  });
+
+  const [hasDraft, setHasDraft] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
 
   const [expandedVariants, setExpandedVariants] = useState<{ [key: string]: boolean }>({});
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingVideos, setUploadingVideos] = useState(false);
-  const [featuresText, setFeaturesText] = useState(
-    (initial?.features ?? []).join("\n"),
-  );
+
+  // Initialize features text from current values (either initial or restored draft)
+  const [featuresText, setFeaturesText] = useState(() => (v.features ?? []).join("\n"));
 
   const [targetParentId, setTargetParentId] = useState("");
   const [targetVariantName, setTargetVariantName] = useState(initial?.name || "");
   const [deleteSourceProduct, setDeleteSourceProduct] = useState(true);
   const [merging, setMerging] = useState(false);
   const [extractingId, setExtractingId] = useState<string | null>(null);
+
+  // Check if draft exists on mount
+  useEffect(() => {
+    if (isNewProduct && typeof window !== "undefined") {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        setHasDraft(true);
+      }
+    }
+  }, [isNewProduct]);
+
+  // Sync featuresText changes back to v.features
+  useEffect(() => {
+    const list = featuresText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setV((prev) => ({ ...prev, features: list }));
+  }, [featuresText]);
+
+  // 2. Auto-save debounced changes to localStorage for new products
+  useEffect(() => {
+    if (!isNewProduct || typeof window === "undefined") return;
+
+    const isTouched =
+      Boolean(v.name) ||
+      Boolean(v.image_url) ||
+      Boolean(v.description) ||
+      (v.gallery_urls ?? []).length > 0 ||
+      (v.dimension_variants ?? []).length > 0 ||
+      (v.color_variants ?? []).length > 0;
+
+    if (!isTouched) return;
+
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(v));
+        const now = new Date();
+        setLastSavedTime(
+          now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        );
+        setHasDraft(true);
+      } catch (err) {
+        console.warn("Error saving draft to localStorage", err);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [v, isNewProduct]);
+
+  // 3. Discard draft handler
+  const handleDiscardDraft = useCallback(() => {
+    if (window.confirm("Discard unsaved draft and start with a blank form?")) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setV(empty);
+      setFeaturesText("");
+      setHasDraft(false);
+      setLastSavedTime(null);
+      toast.info("Draft discarded");
+    }
+  }, []);
 
   function set<K extends keyof ProductFormValues>(k: K, val: ProductFormValues[K]) {
     setV((s) => ({ ...s, [k]: val }));
@@ -349,15 +433,25 @@ export function ProductForm({
       }
     }
 
-    await onSubmit({
-      ...v,
-      price: basePrice,
-      slug,
-      features,
-    });
+    try {
+      await onSubmit({
+        ...v,
+        price: basePrice,
+        slug,
+        features,
+      });
 
-    await qc.invalidateQueries({ queryKey: ["products"] });
-    await qc.refetchQueries({ queryKey: ["products"] });
+      // Clear draft upon successful creation
+      if (isNewProduct) {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        setHasDraft(false);
+      }
+
+      await qc.invalidateQueries({ queryKey: ["products"] });
+      await qc.refetchQueries({ queryKey: ["products"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save product");
+    }
   }
 
   const otherProducts = (allProductsQuery.data ?? []).filter(
@@ -367,6 +461,26 @@ export function ProductForm({
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
+        {/* DRAFT NOTIFICATION BANNER */}
+        {isNewProduct && hasDraft && (
+          <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-foreground shadow-xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>
+                Draft auto-saved. Restored right where you left off
+                {lastSavedTime && ` (Last saved at ${lastSavedTime})`}.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="flex items-center gap-1 font-semibold text-destructive hover:underline cursor-pointer shrink-0 ml-3"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Discard Draft
+            </button>
+          </div>
+        )}
+
         <Card title="Basic Details">
           <Field label="Product name *">
             <input
@@ -450,7 +564,7 @@ export function ProductForm({
               return (
                 <div
                   key={variant.id || index}
-                  className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-sm"
+                  className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-xs"
                 >
                   <div className="grid gap-3 sm:grid-cols-[1.2fr_1.5fr_1fr_1fr_auto_auto] sm:items-end">
                     <Field label="Variant Name">
@@ -573,6 +687,7 @@ export function ProductForm({
                                 <img
                                   src={img}
                                   alt=""
+                                  referrerPolicy="no-referrer"
                                   className="aspect-square rounded-md object-cover w-full border"
                                 />
                                 <button
@@ -645,6 +760,7 @@ export function ProductForm({
                                     <img
                                       src={cImg}
                                       alt=""
+                                      referrerPolicy="no-referrer"
                                       className="aspect-square rounded-md object-cover w-full border"
                                     />
                                     <button
@@ -674,7 +790,7 @@ export function ProductForm({
           <button
             type="button"
             onClick={addDimensionVariant}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-muted transition shadow-sm"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-xs font-medium hover:bg-muted transition shadow-xs"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Variant / Dimension
@@ -812,11 +928,16 @@ export function ProductForm({
         <Card title="Main Product Image *">
           {v.image_url ? (
             <div className="relative">
-              <img src={v.image_url} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
+              <img
+                src={v.image_url}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="aspect-[4/3] w-full rounded-md object-cover"
+              />
               <button
                 type="button"
                 onClick={() => set("image_url", "")}
-                className="absolute right-2 top-2 rounded-full bg-background/90 p-1 hover:bg-background"
+                className="absolute right-2 top-2 rounded-full bg-background/90 p-1 hover:bg-background cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -834,13 +955,18 @@ export function ProductForm({
           <div className="grid grid-cols-3 gap-2">
             {(v.gallery_urls ?? []).map((url, i) => (
               <div key={i} className="relative">
-                <img src={url} alt="" className="aspect-square w-full rounded-md object-cover" />
+                <img
+                  src={url}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="aspect-square w-full rounded-md object-cover"
+                />
                 <button
                   type="button"
                   onClick={() =>
                     set("gallery_urls", (v.gallery_urls ?? []).filter((_, idx) => idx !== i))
                   }
-                  className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                  className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5 cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -874,7 +1000,7 @@ export function ProductForm({
                       (v.video_urls ?? []).filter((_, idx) => idx !== i)
                     )
                   }
-                  className="absolute right-2 top-2 rounded-full bg-background/90 p-1"
+                  className="absolute right-2 top-2 rounded-full bg-background/90 p-1 cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -893,16 +1019,16 @@ export function ProductForm({
           </div>
         </Card>
 
-        {/* STANDALONE PRODUCT COLOR VARIANTS (OUTSIDE OF DIMENSIONS) */}
+        {/* STANDALONE PRODUCT COLOR VARIANTS */}
         <Card title="Product Color Variants">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-muted-foreground">
-              Color swatches for this product (used when no dimensions are selected or across all variants)[cite: 3].
+              Color swatches for this product[cite: 3].
             </p>
             <button
               type="button"
               onClick={addStandaloneColor}
-              className="text-xs text-emerald font-semibold hover:underline inline-flex items-center gap-1 shrink-0"
+              className="text-xs text-emerald font-semibold hover:underline inline-flex items-center gap-1 shrink-0 cursor-pointer"
             >
               <Plus className="h-3 w-3" /> Add Color
             </button>
@@ -926,7 +1052,7 @@ export function ProductForm({
                     <button
                       type="button"
                       onClick={() => removeStandaloneColor(cIdx)}
-                      className="p-1.5 text-muted-foreground hover:text-red-500"
+                      className="p-1.5 text-muted-foreground hover:text-red-500 cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -954,6 +1080,7 @@ export function ProductForm({
                           <img
                             src={cImg}
                             alt=""
+                            referrerPolicy="no-referrer"
                             className="aspect-square rounded-md object-cover w-full border"
                           />
                           <button
@@ -962,7 +1089,7 @@ export function ProductForm({
                               const cImgs = (col.images ?? []).filter((_, i) => i !== cImgIdx);
                               updateStandaloneColor(cIdx, { images: cImgs });
                             }}
-                            className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5"
+                            className="absolute right-1 top-1 rounded-full bg-background/90 p-0.5 cursor-pointer"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -1001,7 +1128,7 @@ export function ProductForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
+          className="w-full rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60 cursor-pointer"
         >
           {submitting ? "Saving…" : submitLabel}
         </button>
