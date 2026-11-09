@@ -22,6 +22,16 @@ interface MediaItem {
   poster?: string;
 }
 
+interface NormalizedColor {
+  id: string;
+  name: string;
+  hex: string;
+  thumb: string;
+  hasSpecificImage: boolean;
+  targetSlideIndex: number;
+  price?: number | null;
+}
+
 function formatRupeePrice(price?: number | string | null): string {
   if (price === undefined || price === null || price === "") return "₹0";
   const num = typeof price === "string" ? Number(price) : price;
@@ -99,37 +109,79 @@ function sanitizeUrl(val: any): string {
   return resolveImageUrl(trimmed);
 }
 
-// Utility to extract images cleanly without infinite deep duplication
-function extractImagesFromObj(obj: any): string[] {
-  if (!obj) return [];
+function extractUrls(target: any): string[] {
+  if (!target) return [];
   const found: string[] = [];
 
-  const addIfStr = (val: any) => {
-    const s = sanitizeUrl(val);
-    if (s && s !== "/placeholder.svg" && !found.includes(s)) {
-      found.push(s);
+  const add = (val: any) => {
+    if (typeof val === "string" && val.trim().length > 0) {
+      const resolved = sanitizeUrl(val);
+      if (resolved && resolved !== "/placeholder.svg" && !found.includes(resolved)) {
+        found.push(resolved);
+      }
     }
   };
 
-  addIfStr(obj.image_url);
-  addIfStr(obj.imageUrl);
-  addIfStr(obj.image);
-  addIfStr(obj.swatch_url);
-  addIfStr(obj.thumbnail);
+  if (typeof target === "string") {
+    add(target);
+    return found;
+  }
 
-  const arrays = [obj.images, obj.gallery, obj.gallery_urls, obj.photos, obj.image_urls];
-  arrays.forEach((arr) => {
-    if (Array.isArray(arr)) {
-      arr.forEach((item) => {
-        if (typeof item === "string") addIfStr(item);
-        else if (typeof item === "object" && item !== null) {
-          addIfStr(item.url || item.image_url || item.image);
-        }
-      });
-    }
-  });
+  if (Array.isArray(target)) {
+    target.forEach((item) => {
+      extractUrls(item).forEach((u) => add(u));
+    });
+    return Array.from(new Set(found));
+  }
 
-  return found;
+  if (typeof target === "object" && target !== null) {
+    add(target.image_url);
+    add(target.imageUrl);
+    add(target.image);
+    add(target.swatch_url);
+    add(target.url);
+    add(target.thumbnail);
+
+    const subArrays = [target.images, target.gallery, target.gallery_urls, target.photos, target.image_urls];
+    subArrays.forEach((arr) => {
+      if (Array.isArray(arr)) {
+        arr.forEach((item) => {
+          extractUrls(item).forEach((u) => add(u));
+        });
+      }
+    });
+  }
+
+  return Array.from(new Set(found));
+}
+
+function isLegitimateColorName(name: string): boolean {
+  if (!name || typeof name !== "string") return false;
+  const lower = name.toLowerCase().trim();
+  const blacklist = [
+    "custom",
+    "available",
+    "also",
+    "warranty",
+    "assembly",
+    "guarantee",
+    "feature",
+    "specification",
+    "dimension",
+    "material",
+    "frame",
+    "seater",
+    "cushion",
+    "foam",
+    "patchwork",
+    "capacity",
+    "weight",
+    "size",
+    "lbs",
+  ];
+  if (blacklist.some((term) => lower.includes(term))) return false;
+  if (lower.length > 25 || lower.length < 2) return false;
+  return true;
 }
 
 export const Route = createFileRoute("/product/$id")({
@@ -169,7 +221,7 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. Dimension / Size Variants
+  // 1. SIZES & DIMENSION VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -183,175 +235,233 @@ function ProductDetailPage() {
     return [];
   }, [product]);
 
+  const hasDimensions = dimensionVariants.length > 0;
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
+  const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. Active Dimension object
-  const activeDimension = dimensionVariants[selectedDimensionIdx] || null;
+  // 2. ROOT & DIMENSION GALLERY RETRIEVAL
+  const productGallery = useMemo(() => {
+    const gathered: string[] = [];
 
-  // 3. Color Variants: checks nested colors inside active dimension FIRST, then product root
-  const activeColorVariants: any[] = useMemo(() => {
-    const nested =
+    // Main cover image
+    if (product.image_url) {
+      const s = sanitizeUrl(product.image_url);
+      if (s) gathered.push(s);
+    }
+
+    // Root gallery arrays
+    extractUrls(product.gallery_urls).forEach((u) => gathered.push(u));
+    extractUrls(product.images).forEach((u) => gathered.push(u));
+
+    // Dim-level images
+    if (Array.isArray(product.dimension_variants)) {
+      product.dimension_variants.forEach((d: any) => {
+        extractUrls(d?.images).forEach((u) => gathered.push(u));
+        extractUrls(d?.gallery).forEach((u) => gathered.push(u));
+      });
+    }
+
+    // Color variant images
+    if (Array.isArray(product.color_variants)) {
+      product.color_variants.forEach((c: any) => {
+        extractUrls(c?.images).forEach((u) => gathered.push(u));
+      });
+    }
+
+    const unique = Array.from(new Set(gathered.filter(Boolean)));
+    return unique.length > 0 ? unique : [sanitizeUrl(product.image_url) || "/placeholder.svg"];
+  }, [product]);
+
+  const primaryFallback = productGallery[0] || "/placeholder.svg";
+
+  // MEDIA CAROUSEL (IMAGES + VIDEO)
+  const mediaList: MediaItem[] = useMemo(() => {
+    const list: MediaItem[] = productGallery.map((url) => ({
+      type: "image",
+      url,
+    }));
+
+    const videoUrl = product.video_url || product.video || product.videoUrl;
+    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
+      list.push({
+        type: "video",
+        url: videoUrl.trim(),
+        poster: list[0]?.url,
+      });
+    }
+
+    return list;
+  }, [productGallery, product]);
+
+  const totalMedia = mediaList.length;
+
+  // 3. COLOR VARIANTS WITH SAFE FALLBACK INDEXING
+  const availableColors: NormalizedColor[] = useMemo(() => {
+    let rawList: any[] = [];
+
+    const dimColors =
       activeDimension?.color_variants ||
       activeDimension?.variants ||
       activeDimension?.colors ||
       activeDimension?.color_options;
 
-    if (Array.isArray(nested) && nested.length > 0) {
-      return nested.filter(
-        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
-      );
+    if (Array.isArray(dimColors) && dimColors.length > 0) {
+      rawList = dimColors;
+    } else if (Array.isArray(product.color_variants) && product.color_variants.length > 0) {
+      rawList = product.color_variants;
+    } else if (Array.isArray(product.colors) && product.colors.length > 0) {
+      rawList = product.colors;
     }
 
-    const root =
-      product.color_variants ||
-      product.variants ||
-      (Array.isArray(product.colors) && typeof product.colors[0] === "object" ? product.colors : null) ||
-      (Array.isArray(product.color_options) && typeof product.color_options[0] === "object"
-        ? product.color_options
-        : null) ||
-      [];
+    if (!rawList || rawList.length === 0) return [];
 
-    if (Array.isArray(root) && root.length > 0) {
-      return root.filter(
-        (v: any) => v && (v.name || v.color_name || v.label || extractImagesFromObj(v).length > 0)
-      );
-    }
+    const candidateColors: NormalizedColor[] = [];
 
-    return [];
-  }, [product, activeDimension]);
+    for (let idx = 0; idx < rawList.length; idx++) {
+      const c = rawList[idx];
+      let name = "";
+      let images: string[] = [];
+      let swatchUrl = "";
+      let price: number | null = null;
+      let explicitColorCode = "";
 
-  const hasColorVariants = activeColorVariants.length > 0;
-  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
-
-  useEffect(() => {
-    if (selectedVariantIdx >= activeColorVariants.length) {
-      setSelectedVariantIdx(0);
-    }
-  }, [activeColorVariants.length, selectedVariantIdx]);
-
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping">("desc");
-
-  // Base fallback gallery for the product
-  const rootGalleryImages = useMemo(() => {
-    const imgs = extractImagesFromObj(product);
-    return imgs.length > 0 ? imgs : [sanitizeUrl(product.image_url) || "/placeholder.svg"];
-  }, [product]);
-
-  // 4. Exact Gallery Resolver for active Dimension + active Color combination
-  const mediaList: MediaItem[] = useMemo(() => {
-    let images: string[] = [];
-    const activeColor = activeColorVariants[selectedVariantIdx];
-
-    // Priority 1: Images from the active color variant
-    if (activeColor) {
-      const colorImgs = extractImagesFromObj(activeColor);
-      if (colorImgs.length > 0) {
-        images.push(...colorImgs);
+      if (typeof c === "string") {
+        name = c.trim();
+      } else if (typeof c === "object" && c !== null) {
+        name = c.name || c.color_name || c.colorName || c.label || "";
+        images = extractUrls(c);
+        swatchUrl = c.swatch_url || c.thumbnail || c.imageUrl || (images.length > 0 ? images[0] : "");
+        explicitColorCode = c.colorCode || c.color_code || c.hex || "";
+        if (c.price) price = Number(c.price);
       }
-    }
 
-    // Priority 2: If color has no specific images, check dimension images
-    if (images.length === 0 && activeDimension) {
-      const dimImgs = extractImagesFromObj(activeDimension);
-      if (dimImgs.length > 0) {
-        images.push(...dimImgs);
+      const cleanName = name.replace(/[^a-zA-Z\s&-]/g, "").trim();
+      if (!cleanName || !isLegitimateColorName(cleanName)) continue;
+
+      const hex = resolveColorHex(cleanName, explicitColorCode);
+      const thumb = sanitizeUrl(swatchUrl);
+
+      // Check whether this color variant has its own specific image URL
+      let targetSlideIndex = 0;
+      let hasSpecificImage = false;
+
+      if (images.length > 0) {
+        const found = productGallery.findIndex((img) => img === images[0]);
+        if (found !== -1) {
+          targetSlideIndex = found;
+          hasSpecificImage = true;
+        }
+      } else if (thumb) {
+        const found = productGallery.findIndex((img) => img === thumb);
+        if (found !== -1) {
+          targetSlideIndex = found;
+          hasSpecificImage = true;
+        }
       }
-    }
 
-    // Priority 3: Fallback to the product's clean gallery
-    if (images.length === 0) {
-      images.push(...rootGalleryImages);
-    }
+      // If no exact URL matched, check URL text for keyword
+      if (!hasSpecificImage) {
+        const firstWord = cleanName.toLowerCase().split(" ")[0];
+        const keywordMatch = productGallery.findIndex((img) =>
+          img.toLowerCase().includes(firstWord)
+        );
+        if (keywordMatch !== -1) {
+          targetSlideIndex = keywordMatch;
+          hasSpecificImage = true;
+        } else {
+          // Positional fallback across available gallery images
+          targetSlideIndex = Math.min(idx, productGallery.length - 1);
+        }
+      }
 
-    // Deduplicate
-    const uniqueUrls = Array.from(new Set(images.filter(Boolean)));
-
-    const distinct: MediaItem[] = uniqueUrls.map((url) => ({
-      type: "image",
-      url,
-    }));
-
-    // Video always appears at the end as the final slide
-    const videoUrl = product.video_url || product.video || product.videoUrl;
-    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
-      distinct.push({
-        type: "video",
-        url: videoUrl.trim(),
-        poster: distinct[0]?.url,
+      candidateColors.push({
+        id: c?.id || `color-${idx}`,
+        name: cleanName,
+        hex,
+        thumb,
+        hasSpecificImage,
+        targetSlideIndex,
+        price,
       });
     }
 
-    return distinct.length > 0 ? distinct : [{ type: "image", url: sanitizeUrl(product.image_url) || "/placeholder.svg" }];
-  }, [product, activeDimension, activeColorVariants, selectedVariantIdx, rootGalleryImages]);
+    if (candidateColors.length < 2) return [];
 
-  const totalMedia = mediaList.length;
+    return candidateColors;
+  }, [product, activeDimension, productGallery]);
 
-  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
-  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
+  const hasColors = availableColors.length >= 2;
+  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+  const [activeSlide, setActiveSlide] = useState(0);
 
-  const activeMedia = mediaList[activeSlide] || mediaList[0];
+  // Keep index within range
+  useEffect(() => {
+    if (selectedColorIdx >= availableColors.length) {
+      setSelectedColorIdx(0);
+    }
+  }, [availableColors.length, selectedColorIdx]);
 
-  // Dimension change: resets slide and updates active dimension
-  const handleDimensionSelect = (idx: number) => {
-    setSelectedDimensionIdx(idx);
-    setSelectedVariantIdx(0);
-    setActiveSlide(0);
-  };
+  const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // Color change: sets active variant and synchronizes the carousel slide
-  const handleColorSelect = (idx: number) => {
-    setSelectedVariantIdx(idx);
-    const targetVariant = activeColorVariants[idx];
-    const variantImgs = extractImagesFromObj(targetVariant);
+  // DIMENSION CHANGE HANDLER
+  const handleDimensionChange = (newDimIdx: number) => {
+    setSelectedDimensionIdx(newDimIdx);
+    setSelectedColorIdx(0);
 
-    // If variant has its own image in mediaList, jump to it
-    if (variantImgs.length > 0) {
-      const matchIdx = mediaList.findIndex((m) => m.url === variantImgs[0]);
+    const nextDim = dimensionVariants[newDimIdx];
+    const dimImages = extractUrls(nextDim?.images || nextDim?.gallery);
+
+    if (dimImages.length > 0) {
+      const matchIdx = productGallery.findIndex((img) => img === dimImages[0]);
       if (matchIdx !== -1) {
         setActiveSlide(matchIdx);
         return;
       }
     }
+    setActiveSlide(0);
+  };
 
-    // If variant doesn't have an explicit image array in Firestore,
-    // match its index to the product photos so clicking swatch 1, 2, 3 changes the photo
-    if (idx < totalMedia) {
-      setActiveSlide(idx);
+  // COLOR CLICK HANDLER
+  const handleColorClick = (idx: number) => {
+    setSelectedColorIdx(idx);
+    const target = availableColors[idx];
+    if (target && target.targetSlideIndex >= 0 && target.targetSlideIndex < totalMedia) {
+      setActiveSlide(target.targetSlideIndex);
     } else {
-      setActiveSlide(0);
+      setActiveSlide(Math.min(idx, totalMedia - 1));
     }
   };
 
+  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % totalMedia);
+  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + totalMedia) % totalMedia);
+  const activeMedia = mediaList[activeSlide] || mediaList[0] || { type: "image", url: primaryFallback };
+
   const displayPrice = useMemo(() => {
+    if (activeColor?.price) return activeColor.price;
     if (activeDimension?.price) return activeDimension.price;
-    if (activeColorVariants[selectedVariantIdx]?.price)
-      return activeColorVariants[selectedVariantIdx].price;
     return product.price;
-  }, [activeDimension, activeColorVariants, selectedVariantIdx, product.price]);
+  }, [activeColor, activeDimension, product.price]);
 
-  const selectedColorName = hasColorVariants
-    ? activeColorVariants[selectedVariantIdx]?.name ||
-      activeColorVariants[selectedVariantIdx]?.color_name ||
-      activeColorVariants[selectedVariantIdx]?.label ||
-      `Option ${selectedVariantIdx + 1}`
-    : "";
-
+  const selectedColorName = hasColors ? activeColor?.name || "" : "";
   const selectedSizeInfo = activeDimension
     ? activeDimension.name || activeDimension.label || activeDimension.dimensions || ""
     : "";
 
-  const whatsappMessage = encodeURIComponent(
-    `Hi ${BUSINESS.name}! I am interested in "${product.name}" (${formatRupeePrice(displayPrice)})${
-      selectedColorName ? ` in ${selectedColorName}` : ""
-    }${selectedSizeInfo ? ` | Size: ${selectedSizeInfo}` : ""}.\n\nProduct Link: ${typeof window !== "undefined" ? window.location.href : ""}`
-  );
-  const quoteMessage = encodeURIComponent(
-    `Hi ${BUSINESS.name}! I would like to request a quote for "${product.name}" with custom specifications.`
-  );
+  const whatsappMsgText = [
+    `Hi ${BUSINESS.name}! I am interested in "${product.name}" (${formatRupeePrice(displayPrice)})`,
+    selectedColorName ? `in ${selectedColorName}` : "",
+    selectedSizeInfo ? `| Size: ${selectedSizeInfo}` : "",
+    typeof window !== "undefined" ? `Product Link: ${window.location.href}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const whatsappUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${whatsappMessage}`;
-  const quoteUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${quoteMessage}`;
+  const whatsappUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${encodeURIComponent(whatsappMsgText)}`;
+  const quoteUrl = `https://wa.me/${BUSINESS.phoneRaw}?text=${encodeURIComponent(
+    `Hi ${BUSINESS.name}! I would like to request a quote for "${product.name}" with custom specifications.`
+  )}`;
+
+  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews" | "shipping">("desc");
 
   const relatedProducts = useMemo(() => {
     const currentCategory = (product.category ?? "").trim().toLowerCase();
@@ -369,7 +479,6 @@ function ProductDetailPage() {
     });
 
     if (matched.length >= 4) return matched.slice(0, 8);
-
     const otherProducts = products.filter(
       (p: any) => p.id !== product.id && !matched.some((m: any) => m.id === p.id)
     );
@@ -386,7 +495,6 @@ function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-background py-6 md:py-8">
       <div className="container-px mx-auto max-w-7xl">
-        {/* Breadcrumb Navigation */}
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Link to="/" className="hover:text-foreground">Home</Link>
           <span>/</span>
@@ -409,9 +517,8 @@ function ProductDetailPage() {
           </span>
         </nav>
 
-        {/* Product Showcase */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-14 items-start">
-          {/* Left Column: Image Slider */}
+          {/* Main Media Carousel */}
           <div className="lg:col-span-6 xl:col-span-6">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-white shadow-xs">
               <div className="absolute right-3.5 top-3.5 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
@@ -431,11 +538,26 @@ function ProductDetailPage() {
                 </div>
               ) : (
                 <img
-                  key={`${selectedDimensionIdx}-${selectedVariantIdx}-${activeSlide}-${activeMedia.url}`}
-                  src={activeMedia.url || rootGalleryImages[0]}
+                  key={`${selectedDimensionIdx}-${selectedColorIdx}-${activeSlide}-${activeMedia.url}`}
+                  src={activeMedia.url || primaryFallback}
                   alt={product.name}
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-contain p-2 transition-all duration-300"
+                  onError={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    if (img.src !== primaryFallback) {
+                      img.src = primaryFallback;
+                    }
+                  }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    if (
+                      img.src.includes("imgbb.com") &&
+                      ((img.naturalWidth === 500 && img.naturalHeight === 500) || img.naturalWidth <= 1)
+                    ) {
+                      img.src = primaryFallback;
+                    }
+                  }}
                 />
               )}
 
@@ -461,7 +583,6 @@ function ProductDetailPage() {
               )}
             </div>
 
-            {/* Slider Dots */}
             {totalMedia > 1 && (
               <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap px-2">
                 {mediaList.map((_, idx) => (
@@ -480,7 +601,7 @@ function ProductDetailPage() {
             )}
           </div>
 
-          {/* Right Column: Details, Selectors, and Actions */}
+          {/* Details & Selectors */}
           <div className="flex flex-col lg:col-span-6 xl:col-span-6">
             <span className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground font-semibold">
               {product.category || product.sub_type || "FURNITURE"}
@@ -508,7 +629,7 @@ function ProductDetailPage() {
             </div>
 
             {/* 1. SELECT SIZE / DIMENSIONS */}
-            {dimensionVariants.length > 0 && (
+            {hasDimensions && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
                   1. Select Size / Dimensions:
@@ -523,7 +644,7 @@ function ProductDetailPage() {
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => handleDimensionSelect(idx)}
+                        onClick={() => handleDimensionChange(idx)}
                         className={`flex min-w-[170px] max-w-[210px] flex-shrink-0 flex-col justify-between rounded-xl border p-2 text-left transition-all cursor-pointer ${
                           isSelected
                             ? "border-emerald bg-emerald/5 ring-1 ring-emerald/30 shadow-2xs"
@@ -553,42 +674,39 @@ function ProductDetailPage() {
             )}
 
             {/* 2. SELECT COLOR */}
-            {hasColorVariants && (
+            {hasColors && (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-foreground">
-                  {dimensionVariants.length > 0 ? "2. " : "1. "}Select Color:{" "}
+                  {hasDimensions ? "2. " : "1. "}Select Color:{" "}
                   <span className="uppercase font-semibold text-emerald">
                     {selectedColorName}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {activeColorVariants.map((variant: any, idx: number) => {
-                    const variantImgs = extractImagesFromObj(variant);
-                    const variantThumb = variantImgs[0] || variant.swatch_url;
-                    const colorName = variant.name || variant.color_name || variant.label || "";
-                    const colorHex = resolveColorHex(colorName, variant.hex || variant.color_code);
-                    const isWhite = colorHex.toLowerCase() === "#ffffff" || colorName.toLowerCase().includes("white");
+                  {availableColors.map((color, idx) => {
+                    const isSelected = selectedColorIdx === idx;
+                    const isWhiteColor = color.hex.toLowerCase() === "#ffffff" || color.name.toLowerCase().includes("white");
 
                     return (
                       <button
-                        key={idx}
+                        key={color.id || idx}
                         type="button"
-                        title={colorName || `Color option ${idx + 1}`}
-                        onClick={() => handleColorSelect(idx)}
-                        aria-label={colorName || `Color option ${idx + 1}`}
-                        className={`h-9 w-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                          selectedVariantIdx === idx
-                            ? "border-emerald ring-2 ring-emerald/30 scale-105"
-                            : isWhite
-                            ? "border-neutral-300 hover:border-foreground/50"
-                            : "border-border hover:border-foreground/50"
+                        title={color.name}
+                        onClick={() => handleColorClick(idx)}
+                        aria-label={color.name}
+                        className={`group relative h-9 w-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-emerald ring-2 ring-emerald/40 scale-110 shadow-sm"
+                            : isWhiteColor
+                            ? "border-neutral-300 hover:border-neutral-500"
+                            : "border-border/80 hover:scale-105 hover:border-foreground/40"
                         }`}
-                        style={{ backgroundColor: colorHex }}
+                        style={{ backgroundColor: color.hex }}
                       >
-                        {variantThumb ? (
+                        {color.thumb ? (
                           <img
-                            src={variantThumb}
-                            alt=""
+                            src={color.thumb}
+                            alt={color.name}
                             referrerPolicy="no-referrer"
                             className="h-full w-full object-cover"
                             onError={(e) => {
@@ -657,7 +775,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Tabbed Info & Detailed Description */}
+        {/* Tabbed Info */}
         <div className="mt-10 border-t border-border/80 pt-6">
           <div className="flex gap-6 border-b border-border text-xs sm:text-sm font-medium">
             <button
@@ -788,7 +906,7 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* YOU MAY ALSO LIKE */}
+        {/* You May Also Like */}
         {relatedProducts.length > 0 && (
           <section className="mt-14 border-t border-border/80 pt-8">
             <div className="mb-5 flex items-end justify-between">
