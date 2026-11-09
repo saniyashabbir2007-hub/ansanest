@@ -225,7 +225,7 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. DIMENSION / SIZE VARIANTS
+  // 1. SIZES / DIMENSION VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -243,17 +243,42 @@ function ProductDetailPage() {
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
   const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 2. PRODUCT'S COMPLETE GALLERY (NEVER COLLAPSES TO 1/1)
+  // 2. COMPLETE UNIQUE MEDIA FOR THIS PRODUCT (No duplicates, no collapsing to 1/2)
   const productGallery = useMemo(() => {
-    const list: string[] = [];
+    const collected: string[] = [];
+
+    // Main image
     if (product.image_url) {
       const main = sanitizeImgUrl(product.image_url);
-      if (main && main !== "/placeholder.svg") list.push(main);
+      if (main && main !== "/placeholder.svg") collected.push(main);
     }
-    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
-    extractUrls(product.images).forEach((u) => list.push(u));
 
-    const unique = Array.from(new Set(list.filter(Boolean)));
+    // Root gallery
+    extractUrls(product.gallery_urls).forEach((u) => collected.push(u));
+    extractUrls(product.images).forEach((u) => collected.push(u));
+
+    // Images inside dimensions
+    if (Array.isArray(product.dimension_variants)) {
+      product.dimension_variants.forEach((d: any) => {
+        extractUrls(d?.images).forEach((u) => collected.push(u));
+        extractUrls(d?.gallery).forEach((u) => collected.push(u));
+        if (Array.isArray(d?.colors)) {
+          d.colors.forEach((c: any) => {
+            extractUrls(c?.images).forEach((u) => collected.push(u));
+          });
+        }
+      });
+    }
+
+    // Images inside standalone colors
+    if (Array.isArray(product.color_variants)) {
+      product.color_variants.forEach((c: any) => {
+        extractUrls(c?.images).forEach((u) => collected.push(u));
+      });
+    }
+
+    // Deduplicate by URL
+    const unique = Array.from(new Set(collected.filter(Boolean)));
     return unique.length > 0 ? unique : [sanitizeImgUrl(product.image_url) || "/placeholder.svg"];
   }, [product]);
 
@@ -325,7 +350,7 @@ function ProductDetailPage() {
       const hex = explicitColorCode || getColorHex(cleanName);
       const thumb = sanitizeImgUrl(swatchUrl);
 
-      // Map color directly to slide index in productGallery
+      // Map color to an image in productGallery
       let targetSlideIndex = 0;
       if (images.length > 0) {
         const found = productGallery.findIndex((img) => img === images[0]);
@@ -339,7 +364,6 @@ function ProductDetailPage() {
         if (keywordMatch !== -1) {
           targetSlideIndex = keywordMatch;
         } else {
-          // Direct 1-to-1 index matching
           targetSlideIndex = Math.min(idx, productGallery.length - 1);
         }
       }
@@ -365,7 +389,7 @@ function ProductDetailPage() {
 
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // DIMENSION CHANGE: Selects dimension without emptying the gallery
+  // DIMENSION CHANGE: Shifts smoothly without losing any gallery photos
   const handleDimensionChange = (newDimIdx: number) => {
     setSelectedDimensionIdx(newDimIdx);
     setSelectedColorIdx(0);
