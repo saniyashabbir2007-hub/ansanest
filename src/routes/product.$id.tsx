@@ -69,6 +69,7 @@ const COLOR_MAP: Record<string, string> = {
   black: "#1A1A1A",
   "classic black": "#1A1A1A",
   brown: "#8B4513",
+  "mocha brown": "#5C3A21",
   "chocolate brown": "#4B3621",
   "dark brown": "#5C2C16",
   tan: "#D2B48C",
@@ -239,31 +240,26 @@ function ProductDetailPage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [brokenUrls, setBrokenUrls] = useState<Record<string, boolean>>({});
 
-  // 3. Media List Construction (Strictly Filters Empty Strings & Broken Images)
+  // 3. Media List Construction (Strictly Valid URLs only)
   const mediaList: MediaItem[] = useMemo(() => {
     const currentVariant = activeColorVariants[selectedVariantIdx];
     let candidateImages: string[] = [];
 
-    // 1. Variant specific images
     if (currentVariant) {
       candidateImages.push(...extractImagesFromObj(currentVariant));
     }
 
-    // 2. Active dimension images
     if (candidateImages.length === 0 && activeDimension) {
       candidateImages.push(...extractImagesFromObj(activeDimension));
     }
 
-    // 3. Root product gallery images
     if (candidateImages.length === 0) {
       candidateImages.push(...extractImagesFromObj(product));
     }
 
-    // Discard any empty, duplicate, or previously failed URLs
     const validImages = Array.from(new Set(candidateImages))
       .filter((u) => u && typeof u === "string" && u.trim().length > 5 && !brokenUrls[u]);
 
-    // Ensure there is at least one image
     const finalImages = validImages.length > 0 
       ? validImages 
       : [cleanDirectUrl(product.image_url) || "/placeholder.svg"];
@@ -287,7 +283,6 @@ function ProductDetailPage() {
 
   const totalMedia = mediaList.length;
 
-  // Keep activeSlide valid whenever mediaList changes
   useEffect(() => {
     if (activeSlide >= totalMedia) {
       setActiveSlide(0);
@@ -460,7 +455,7 @@ function ProductDetailPage() {
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2.5 py-1 text-xs text-muted-foreground transition hover:border-foreground/40 hover:text-foreground"
+            className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2.5 py-1 text-xs text-muted-foreground transition hover:border-foreground/40 hover:text-foreground cursor-pointer"
           >
             {copySuccess ? <Check className="h-3.5 w-3.5 text-emerald" /> : <Share2 className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{copySuccess ? "Link Copied!" : "Share"}</span>
@@ -469,7 +464,7 @@ function ProductDetailPage() {
 
         {/* Product Showcase Grid */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-14 items-start">
-          {/* Main Media Carousel with Lightbox */}
+          {/* Main Media Carousel */}
           <div className="lg:col-span-6 xl:col-span-6">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-white shadow-xs group">
               <div className="absolute right-3.5 top-3.5 z-10 flex items-center gap-2">
@@ -477,7 +472,7 @@ function ProductDetailPage() {
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
                   aria-label="Enlarge image"
-                  className="rounded-md bg-black/60 p-1.5 text-white backdrop-blur-xs transition hover:bg-black/80"
+                  className="rounded-md bg-black/60 p-1.5 text-white backdrop-blur-xs transition hover:bg-black/80 cursor-pointer"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
                 </button>
@@ -507,7 +502,6 @@ function ProductDetailPage() {
                   className="h-full w-full object-contain p-2 transition-all duration-200 cursor-zoom-in"
                   onClick={() => setIsLightboxOpen(true)}
                   onError={() => {
-                    // Instantly prune broken or unavailable image so slider never breaks
                     setBrokenUrls((prev) => ({ ...prev, [activeMedia.url]: true }));
                   }}
                 />
@@ -535,35 +529,20 @@ function ProductDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail Row */}
+            {/* Slider Dots */}
             {totalMedia > 1 && (
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1.5 scroll-smooth">
-                {mediaList.map((item, idx) => (
+              <div className="mt-3.5 flex items-center justify-center gap-1.5 flex-wrap px-2">
+                {mediaList.map((_, idx) => (
                   <button
-                    key={`${item.url}-${idx}`}
+                    key={idx}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
-                    className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all cursor-pointer ${
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       activeSlide === idx
-                        ? "border-emerald ring-2 ring-emerald/30 scale-102"
-                        : "border-border/60 opacity-60 hover:opacity-100"
+                        ? "w-6 bg-emerald"
+                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                     }`}
-                  >
-                    {item.type === "video" ? (
-                      <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-[10px] font-bold text-white uppercase">
-                        Video
-                      </div>
-                    ) : (
-                      <img
-                        src={item.url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        onError={() => {
-                          setBrokenUrls((prev) => ({ ...prev, [item.url]: true }));
-                        }}
-                      />
-                    )}
-                  </button>
+                  />
                 ))}
               </div>
             )}
@@ -655,7 +634,7 @@ function ProductDetailPage() {
               </div>
             )}
 
-            {/* 2. Color Swatches */}
+            {/* 2. Circular Color Swatches */}
             {hasColorVariants && (
               <div className="mt-4 border-t border-border/60 pt-4">
                 <div className="flex items-center justify-between">
@@ -690,7 +669,7 @@ function ProductDetailPage() {
                         {variantThumb ? (
                           <img
                             src={variantThumb}
-                            alt=""
+                            alt={colorName}
                             className="h-full w-full object-cover"
                             onError={(e) => {
                               (e.target as HTMLElement).style.display = "none";
@@ -1043,7 +1022,7 @@ function ProductDetailPage() {
             type="button"
             onClick={() => setIsLightboxOpen(false)}
             aria-label="Close fullscreen view"
-            className="absolute right-4 top-4 z-50 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+            className="absolute right-4 top-4 z-50 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20 cursor-pointer"
           >
             <X className="h-6 w-6" />
           </button>
@@ -1062,7 +1041,7 @@ function ProductDetailPage() {
                 type="button"
                 onClick={prevSlide}
                 aria-label="Previous"
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 cursor-pointer"
               >
                 <ChevronLeft className="h-6 w-6" />
               </button>
@@ -1070,7 +1049,7 @@ function ProductDetailPage() {
                 type="button"
                 onClick={nextSlide}
                 aria-label="Next"
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 cursor-pointer"
               >
                 <ChevronRight className="h-6 w-6" />
               </button>
