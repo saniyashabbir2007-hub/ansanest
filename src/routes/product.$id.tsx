@@ -84,7 +84,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 function getColorHex(name: string): string {
-  if (!name) return "#A3A3A3";
+  if (!name) return "#C4C4C4";
   const clean = name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
 
   if (COLOR_MAP[clean]) return COLOR_MAP[clean];
@@ -100,7 +100,7 @@ function getColorHex(name: string): string {
     hash = clean.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 45%, 55%)`;
+  return `hsl(${hue}, 50%, 65%)`;
 }
 
 function isLegitimateColorName(name: string): boolean {
@@ -174,15 +174,6 @@ function extractUrls(target: any): string[] {
     add(target.swatch_url);
     add(target.url);
     add(target.thumbnail);
-
-    const subArrays = [target.images, target.gallery, target.gallery_urls, target.photos, target.image_urls];
-    subArrays.forEach((arr) => {
-      if (Array.isArray(arr)) {
-        arr.forEach((item) => {
-          extractUrls(item).forEach((u) => found.push(u));
-        });
-      }
-    });
   }
 
   return Array.from(new Set(found));
@@ -225,63 +216,7 @@ function ProductDetailPage() {
         p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
     ) || loaderData.product;
 
-  // 1. ALL IMAGES (COMPLETE, IMMUTABLE LIST)
-  const allImages = useMemo(() => {
-    const list: string[] = [];
-    if (product.image_url) {
-      const main = sanitizeImgUrl(product.image_url);
-      if (main && main !== "/placeholder.svg") list.push(main);
-    }
-    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
-    extractUrls(product.images).forEach((u) => list.push(u));
-
-    // Gather images stored in dimension variants
-    const dims = product.dimension_variants || product.size_variants || [];
-    if (Array.isArray(dims)) {
-      dims.forEach((d: any) => {
-        extractUrls(d?.images).forEach((u) => list.push(u));
-        if (Array.isArray(d?.colors)) {
-          d.colors.forEach((c: any) => {
-            extractUrls(c?.images).forEach((u) => list.push(u));
-          });
-        }
-      });
-    }
-
-    // Gather images stored in standalone color variants
-    const cols = product.color_variants || [];
-    if (Array.isArray(cols)) {
-      cols.forEach((c: any) => {
-        extractUrls(c?.images).forEach((u) => list.push(u));
-      });
-    }
-
-    const unique = Array.from(new Set(list.filter(Boolean)));
-    return unique.length > 0 ? unique : [sanitizeImgUrl(product.image_url) || "/placeholder.svg"];
-  }, [product]);
-
-  // STABLE MEDIA LIST: 100% of images remain accessible across all variants
-  const mediaList: MediaItem[] = useMemo(() => {
-    const list: MediaItem[] = allImages.map((url) => ({
-      type: "image",
-      url,
-    }));
-
-    const videoUrl = product.video_url || product.video || product.videoUrl;
-    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
-      list.push({
-        type: "video",
-        url: videoUrl.trim(),
-      });
-    }
-
-    return list;
-  }, [allImages, product]);
-
-  const totalMedia = mediaList.length;
-  const primaryFallback = allImages[0] || "/placeholder.svg";
-
-  // 2. DIMENSION VARIANTS
+  // 1. SIZES / DIMENSION VARIANTS
   const dimensionVariants: any[] = useMemo(() => {
     const raw =
       product.dimension_variants ||
@@ -299,7 +234,50 @@ function ProductDetailPage() {
   const [selectedDimensionIdx, setSelectedDimensionIdx] = useState(0);
   const activeDimension = hasDimensions ? dimensionVariants[selectedDimensionIdx] || null : null;
 
-  // 3. COLOR VARIANTS WITH DETERMINISTIC SLIDE TARGETS
+  // 2. ONLY THIS PRODUCT'S OWN GALLERY (EXACTLY 6 TO 10 PHOTOS, NEVER 69!)
+  const currentImages = useMemo(() => {
+    // If the active dimension has its own exclusive images, use them
+    const dimImgs = extractUrls(activeDimension?.images || activeDimension?.gallery);
+    if (dimImgs.length > 0) {
+      return dimImgs;
+    }
+
+    // Otherwise use this product's own images
+    const list: string[] = [];
+    if (product.image_url) {
+      const main = sanitizeImgUrl(product.image_url);
+      if (main && main !== "/placeholder.svg") list.push(main);
+    }
+    extractUrls(product.gallery_urls).forEach((u) => list.push(u));
+    extractUrls(product.images).forEach((u) => list.push(u));
+
+    const unique = Array.from(new Set(list.filter(Boolean)));
+    return unique.length > 0 ? unique : [sanitizeImgUrl(product.image_url) || "/placeholder.svg"];
+  }, [product, activeDimension]);
+
+  const primaryFallback = currentImages[0] || "/placeholder.svg";
+
+  // MEDIA LIST: strictly for THIS product/dimension
+  const mediaList: MediaItem[] = useMemo(() => {
+    const list: MediaItem[] = currentImages.map((url) => ({
+      type: "image",
+      url,
+    }));
+
+    const videoUrl = product.video_url || product.video || product.videoUrl;
+    if (videoUrl && typeof videoUrl === "string" && videoUrl.trim().length > 0) {
+      list.push({
+        type: "video",
+        url: videoUrl.trim(),
+      });
+    }
+
+    return list;
+  }, [currentImages, product]);
+
+  const totalMedia = mediaList.length;
+
+  // 3. COLOR VARIANTS FOR THIS PRODUCT
   const availableColors: NormalizedColor[] = useMemo(() => {
     let rawList: any[] = [];
 
@@ -345,25 +323,22 @@ function ProductDetailPage() {
       const hex = explicitColorCode || getColorHex(cleanName);
       const thumb = sanitizeImgUrl(swatchUrl);
 
-      // Determine the slide target for this color:
+      // Map color to an image in currentImages
       let targetSlideIndex = 0;
-
-      // 1. Check if color has an explicit image matching our gallery
       if (images.length > 0) {
-        const found = allImages.findIndex((img) => img === images[0]);
+        const found = currentImages.findIndex((img) => img === images[0]);
         if (found !== -1) targetSlideIndex = found;
       } else if (thumb) {
-        const found = allImages.findIndex((img) => img === thumb);
+        const found = currentImages.findIndex((img) => img === thumb);
         if (found !== -1) targetSlideIndex = found;
       } else {
-        // 2. Keyword match against image URLs (e.g., "green", "pink", "brown")
         const firstWord = cleanName.toLowerCase().split(" ")[0];
-        const keywordMatch = allImages.findIndex((img) => img.toLowerCase().includes(firstWord));
+        const keywordMatch = currentImages.findIndex((img) => img.toLowerCase().includes(firstWord));
         if (keywordMatch !== -1) {
           targetSlideIndex = keywordMatch;
         } else {
-          // 3. Fallback: map 1-to-1 to gallery slide if available
-          targetSlideIndex = Math.min(idx, allImages.length - 1);
+          // Direct 1-to-1 index matching
+          targetSlideIndex = Math.min(idx, currentImages.length - 1);
         }
       }
 
@@ -380,7 +355,7 @@ function ProductDetailPage() {
     if (candidateColors.length < 2) return [];
 
     return candidateColors;
-  }, [product, activeDimension, allImages]);
+  }, [product, activeDimension, currentImages]);
 
   const hasColors = availableColors.length >= 2;
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
@@ -388,25 +363,14 @@ function ProductDetailPage() {
 
   const activeColor = hasColors ? availableColors[selectedColorIdx] || availableColors[0] : null;
 
-  // DIMENSION CHANGE HANDLER
+  // DIMENSION CHANGE: Resets slide to 0 and clears selection smoothly
   const handleDimensionChange = (newDimIdx: number) => {
     setSelectedDimensionIdx(newDimIdx);
     setSelectedColorIdx(0);
-
-    const nextDim = dimensionVariants[newDimIdx];
-    const dimImages = extractUrls(nextDim?.images || nextDim?.gallery);
-
-    if (dimImages.length > 0) {
-      const matchIdx = allImages.findIndex((img) => img === dimImages[0]);
-      if (matchIdx !== -1) {
-        setActiveSlide(matchIdx);
-        return;
-      }
-    }
     setActiveSlide(0);
   };
 
-  // COLOR CLICK HANDLER: Instantly changes the main image
+  // COLOR CLICK: Directly switches carousel to that color's photo
   const handleColorClick = (idx: number) => {
     setSelectedColorIdx(idx);
     const targetColor = availableColors[idx];
